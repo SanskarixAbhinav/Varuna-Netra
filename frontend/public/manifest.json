@@ -1,0 +1,9 @@
+{
+  "short_name": "Varuna Netra",
+  "name": "Varuna Netra — Oil-Spill Detection & Vessel Correlation",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0B1220",
+  "background_color": "#0B1220"
+}

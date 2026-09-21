@@ -1,303 +1,299 @@
+import * as THREE from 'three';
 import { DETECTIONS, ROUTES } from '../../data/landing/geo';
 
-const SEVERITY_COLORS = {
-  probable: { fill: '#c25a49', glow: 'rgba(194, 90, 73, 0.4)' },
-  possible: { fill: '#b8862a', glow: 'rgba(184, 134, 42, 0.4)' },
-  indeterminate: { fill: '#1f7f93', glow: 'rgba(31, 127, 147, 0.4)' }
+const TIDE = 0x1f7f93;
+const FLARE = 0xc25a49;
+const SIGNAL = 0xb8862a;
+
+const SEVERITY_COLOR = {
+  probable: FLARE,
+  possible: SIGNAL,
+  indeterminate: TIDE
 };
 
-// Generate Fibonacci surface points for the sphere
-function generateFibonacciPoints(count = 1400) {
+function toVector({ lat, lon }, radius = 1) {
+  const phi = (90 - lat) * Math.PI / 180;
+  const theta = (lon + 180) * Math.PI / 180;
+  return new THREE.Vector3(
+    -radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta)
+  );
+}
+
+function buildGraticule() {
   const points = [];
-  const phi = Math.PI * (3 - Math.sqrt(5)); // golden angle
-  for (let i = 0; i < count; i++) {
-    const y = 1 - (i / (count - 1)) * 2;
-    const radius = Math.sqrt(Math.max(0, 1 - y * y));
-    const theta = phi * i;
-    points.push({
-      x: Math.cos(theta) * radius,
-      y,
-      z: Math.sin(theta) * radius
-    });
-  }
-  return points;
-}
-
-// Convert lat/lon to 3D unit sphere coordinates
-function latLonToVector(lat, lon) {
-  const phi = (90 - lat) * (Math.PI / 180);
-  const theta = (lon + 180) * (Math.PI / 180);
-  return {
-    x: -Math.sin(phi) * Math.cos(theta),
-    y: Math.cos(phi),
-    z: Math.sin(phi) * Math.sin(theta)
+  const push = (a, b) => {
+    points.push(a.x, a.y, a.z, b.x, b.y, b.z);
   };
+  for (let lat = -75; lat <= 75; lat += 15) {
+    for (let lon = -180; lon < 180; lon += 4) {
+      push(toVector({ lat, lon }, 1.001), toVector({ lat, lon: lon + 4 }, 1.001));
+    }
+  }
+  for (let lon = -180; lon < 180; lon += 15) {
+    for (let lat = -88; lat < 88; lat += 4) {
+      push(toVector({ lat, lon }, 1.001), toVector({ lat: lat + 4, lon }, 1.001));
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+  return new THREE.LineSegments(
+    geometry,
+    new THREE.LineBasicMaterial({ color: TIDE, transparent: true, opacity: 0.16 })
+  );
 }
 
-export function createGlobeScene(container, options = {}) {
-  const canvas = document.createElement('canvas');
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
-  canvas.style.display = 'block';
-  container.appendChild(canvas);
+function buildSurfacePoints(count = 2600) {
+  const positions = new Float32Array(count * 3);
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < count; i++) {
+    const y = 1 - i / (count - 1) * 2;
+    const radius = Math.sqrt(Math.max(0, 1 - y * y));
+    const theta = golden * i;
+    positions[i * 3] = Math.cos(theta) * radius;
+    positions[i * 3 + 1] = y;
+    positions[i * 3 + 2] = Math.sin(theta) * radius;
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  return new THREE.Points(
+    geometry,
+    new THREE.PointsMaterial({
+      color: TIDE,
+      size: 0.0075,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.32
+    })
+  );
+}
 
-  const ctx = canvas.getContext('2d');
-  let width = 0;
-  let height = 0;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+/** Soft daylight halo — normal blending so it stays gentle against the paper background. */
+function buildAtmosphere() {
+  const material = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: new THREE.Color(0x8fc4d1) } },
+    vertexShader: `
+      varying vec3 vNormal;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      varying vec3 vNormal;
+      void main() {
+        float intensity = pow(0.72 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.4);
+        gl_FragColor = vec4(uColor, clamp(intensity, 0.0, 1.0) * 0.45);
+      }
+    `,
+    side: THREE.BackSide,
+    transparent: true,
+    depthWrite: false
+  });
+  return new THREE.Mesh(new THREE.SphereGeometry(1.24, 64, 64), material);
+}
+
+function buildSweep() {
+  const uniforms = {
+    uTime: { value: 0 },
+    uColor: { value: new THREE.Color(0x2f93a8) }
+  };
+  const material = new THREE.ShaderMaterial({
+    uniforms,
+    vertexShader: `
+      varying vec3 vObj;
+      void main() {
+        vObj = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform vec3 uColor;
+      varying vec3 vObj;
+      const float TAU = 6.2831853;
+      void main() {
+        float angle = atan(vObj.z, vObj.x);
+        float d = abs(mod(angle - uTime + 3.14159265, TAU) - 3.14159265);
+        float band = pow(max(0.0, 1.0 - d / 1.15), 3.2);
+        float poleFade = 1.0 - pow(abs(vObj.y), 2.2);
+        gl_FragColor = vec4(uColor, band * poleFade * 0.22);
+      }
+    `,
+    transparent: true,
+    depthWrite: false
+  });
+  return { mesh: new THREE.Mesh(new THREE.SphereGeometry(1.012, 64, 64), material), uniforms };
+}
+
+function buildArcs(parent) {
+  const segments = 140;
+  return ROUTES.map(([from, to], index) => {
+    const a = toVector(from, 1.005);
+    const b = toVector(to, 1.005);
+    const lift = 1 + a.distanceTo(b) * 0.26;
+    const mid = a.clone().add(b).normalize().multiplyScalar(lift);
+    const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
+    const points = curve.getPoints(segments);
+
+    const baseGeometry = new THREE.BufferGeometry().setFromPoints(points);
+    const base = new THREE.Line(
+      baseGeometry,
+      new THREE.LineBasicMaterial({ color: TIDE, transparent: true, opacity: 0.22 })
+    );
+    parent.add(base);
+
+    const tracerGeometry = new THREE.BufferGeometry().setFromPoints(points);
+    const tracer = new THREE.Line(
+      tracerGeometry,
+      new THREE.LineBasicMaterial({ color: 0x14606f, transparent: true, opacity: 0.9 })
+    );
+    tracer.geometry.setDrawRange(0, 0);
+    parent.add(tracer);
+
+    return {
+      tracer,
+      total: segments + 1,
+      head: index / ROUTES.length * (segments + 1),
+      speed: 0.35 + index % 3 * 0.12
+    };
+  });
+}
+
+function buildMarkers(parent) {
+  return DETECTIONS.map((detection, index) => {
+    const color = SEVERITY_COLOR[detection.severity];
+    const position = toVector(detection, 1.008);
+
+    const dot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.011, 12, 12),
+      new THREE.MeshBasicMaterial({ color })
+    );
+    dot.position.copy(position);
+    parent.add(dot);
+
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.022, 0.028, 40),
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.7,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      })
+    );
+    ring.position.copy(position);
+    ring.lookAt(position.clone().multiplyScalar(2));
+    parent.add(ring);
+
+    return { ring, offset: index * 0.42 };
+  });
+}
+
+export function createGlobeScene(container, options) {
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+  camera.position.set(0, 0, 3.05);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
+  renderer.domElement.style.width = '100%';
+  renderer.domElement.style.height = '100%';
+  renderer.domElement.style.display = 'block';
+  container.appendChild(renderer.domElement);
+
+  const tilt = new THREE.Group();
+  tilt.rotation.z = -0.36;
+  tilt.rotation.x = 0.16;
+  scene.add(tilt);
+
+  const spinner = new THREE.Group();
+  spinner.rotation.y = -1.1;
+  tilt.add(spinner);
+
+  const core = new THREE.Mesh(
+    new THREE.SphereGeometry(0.995, 72, 72),
+    new THREE.MeshStandardMaterial({ color: 0xe9eef0, roughness: 0.96, metalness: 0.02 })
+  );
+  spinner.add(core);
+  spinner.add(buildGraticule());
+  spinner.add(buildSurfacePoints());
+
+  const atmosphere = buildAtmosphere();
+  tilt.add(atmosphere);
+
+  const sweep = buildSweep();
+  spinner.add(sweep.mesh);
+
+  const arcs = buildArcs(spinner);
+  const markers = buildMarkers(spinner);
+
+  scene.add(new THREE.AmbientLight(0xdfe9ec, 2.2));
+  const key = new THREE.DirectionalLight(0xffffff, 1.9);
+  key.position.set(-2.6, 1.8, 2.2);
+  scene.add(key);
+  const bounce = new THREE.DirectionalLight(0xbcd7de, 0.9);
+  bounce.position.set(2.4, -1.4, -1.6);
+  scene.add(bounce);
+
+  const pointer = { x: 0, y: 0 };
+  const eased = { x: 0, y: 0 };
 
   const resize = () => {
-    width = container.clientWidth || 300;
-    height = container.clientHeight || 300;
-    canvas.width = Math.floor(width * dpr);
-    canvas.height = Math.floor(height * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const { clientWidth, clientHeight } = container;
+    if (!clientWidth || !clientHeight) return;
+    camera.aspect = clientWidth / clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(clientWidth, clientHeight, false);
   };
   resize();
 
   const observer = new ResizeObserver(resize);
   observer.observe(container);
 
-  const surfacePoints = generateFibonacciPoints(1400);
+  const clock = new THREE.Clock();
+  let frame = 0;
 
-  // Pre-calculate detection vectors
-  const detectionPoints = DETECTIONS.map((d, i) => ({
-    ...d,
-    vec: latLonToVector(d.lat, d.lon),
-    offset: i * 0.4
-  }));
+  const render = () => {
+    const delta = Math.min(clock.getDelta(), 0.05);
+    const elapsed = clock.getElapsedTime();
 
-  // Pre-calculate route sample points with parabolic height
-  const routeCurves = ROUTES.map(([from, to]) => {
-    const vFrom = latLonToVector(from.lat, from.lon);
-    const vTo = latLonToVector(to.lat, to.lon);
-    const numSteps = 40;
-    const pts = [];
-    for (let i = 0; i <= numSteps; i++) {
-      const t = i / numSteps;
-      const x = vFrom.x + (vTo.x - vFrom.x) * t;
-      const y = vFrom.y + (vTo.y - vFrom.y) * t;
-      const z = vFrom.z + (vTo.z - vFrom.z) * t;
-      const len = Math.sqrt(x * x + y * y + z * z) || 1;
-      const arcLift = 1.0 + Math.sin(t * Math.PI) * 0.18;
-      pts.push({
-        x: (x / len) * arcLift,
-        y: (y / len) * arcLift,
-        z: (z / len) * arcLift
-      });
-    }
-    return pts;
-  });
-
-  let rotY = -1.1;
-  const tiltX = 0.22;
-  const pointer = { x: 0, y: 0 };
-  const eased = { x: 0, y: 0 };
-
-  let animationFrameId = null;
-  let lastTime = performance.now();
-  let elapsed = 0;
-
-  const spinSpeed = options.spinSpeed || 0.18;
-  const reducedMotion = Boolean(options.reducedMotion);
-
-  function project(p, radius, cx, cy, cosY, sinY, cosTilt, sinTilt) {
-    // 1. Rotate around Y (longitude rotation)
-    const x1 = p.x * cosY + p.z * sinY;
-    const y1 = p.y;
-    const z1 = -p.x * sinY + p.z * cosY;
-
-    // 2. Rotate around X (tilt / pitch)
-    const x2 = x1;
-    const y2 = y1 * cosTilt - z1 * sinTilt;
-    const z2 = y1 * sinTilt + z1 * cosTilt;
-
-    return {
-      x: cx + x2 * radius,
-      y: cy - y2 * radius,
-      z: z2,
-      visible: z2 > 0
-    };
-  }
-
-  function render(now) {
-    const delta = Math.min((now - lastTime) / 1000, 0.1);
-    lastTime = now;
-    elapsed += delta;
-
-    if (!reducedMotion) {
-      rotY += delta * spinSpeed;
+    if (!options.reducedMotion) {
+      spinner.rotation.y += delta * options.spinSpeed;
+      sweep.uniforms.uTime.value = -elapsed * 0.72;
     }
 
     eased.x += (pointer.x - eased.x) * 0.05;
     eased.y += (pointer.y - eased.y) * 0.05;
+    tilt.rotation.y = eased.x * 0.28;
+    tilt.rotation.x = 0.16 + eased.y * 0.16;
+    camera.position.x = eased.x * -0.22;
+    camera.position.y = eased.y * 0.16;
+    camera.lookAt(0, 0, 0);
 
-    const curTiltX = tiltX + eased.y * 0.2;
-    const curRotY = rotY + eased.x * 0.35;
-
-    ctx.clearRect(0, 0, width, height);
-
-    const cx = width / 2;
-    const cy = height / 2;
-    const radius = Math.min(width, height) * 0.38;
-
-    const cosY = Math.cos(curRotY);
-    const sinY = Math.sin(curRotY);
-    const cosTilt = Math.cos(curTiltX);
-    const sinTilt = Math.sin(curTiltX);
-
-    // 1. Atmosphere halo
-    const haloGrad = ctx.createRadialGradient(cx, cy, radius * 0.8, cx, cy, radius * 1.25);
-    haloGrad.addColorStop(0, 'rgba(143, 196, 209, 0.12)');
-    haloGrad.addColorStop(0.6, 'rgba(47, 147, 168, 0.06)');
-    haloGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = haloGrad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius * 1.25, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 2. Globe core sphere
-    const sphereGrad = ctx.createRadialGradient(cx - radius * 0.28, cy - radius * 0.32, radius * 0.1, cx, cy, radius);
-    sphereGrad.addColorStop(0, '#f2f6f8');
-    sphereGrad.addColorStop(0.6, '#e0e8eb');
-    sphereGrad.addColorStop(1, '#c4d4d9');
-    ctx.fillStyle = sphereGrad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Subtle edge shadow
-    const edgeGrad = ctx.createRadialGradient(cx, cy, radius * 0.85, cx, cy, radius);
-    edgeGrad.addColorStop(0, 'rgba(31, 127, 147, 0)');
-    edgeGrad.addColorStop(1, 'rgba(31, 127, 147, 0.25)');
-    ctx.fillStyle = edgeGrad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Clip to globe circle for surface features
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.clip();
-
-    // 3. Graticule (Latitude & Longitude grid lines)
-    ctx.strokeStyle = 'rgba(31, 127, 147, 0.16)';
-    ctx.lineWidth = 1;
-
-    // Latitude rings
-    for (let lat = -60; lat <= 60; lat += 30) {
-      ctx.beginPath();
-      let first = true;
-      for (let lon = -180; lon <= 180; lon += 6) {
-        const v = latLonToVector(lat, lon);
-        const p = project(v, radius, cx, cy, cosY, sinY, cosTilt, sinTilt);
-        if (p.visible) {
-          if (first) { ctx.moveTo(p.x, p.y); first = false; }
-          else ctx.lineTo(p.x, p.y);
-        } else {
-          first = true;
-        }
+    arcs.forEach((arc) => {
+      if (!options.reducedMotion) {
+        arc.head = (arc.head + delta * arc.speed * 60) % (arc.total + 60);
       }
-      ctx.stroke();
-    }
-
-    // Longitude meridians
-    for (let lon = -180; lon < 180; lon += 30) {
-      ctx.beginPath();
-      let first = true;
-      for (let lat = -85; lat <= 85; lat += 5) {
-        const v = latLonToVector(lat, lon);
-        const p = project(v, radius, cx, cy, cosY, sinY, cosTilt, sinTilt);
-        if (p.visible) {
-          if (first) { ctx.moveTo(p.x, p.y); first = false; }
-          else ctx.lineTo(p.x, p.y);
-        } else {
-          first = true;
-        }
-      }
-      ctx.stroke();
-    }
-
-    // 4. Surface Fibonacci Points (dot matrix globe)
-    for (let i = 0; i < surfacePoints.length; i++) {
-      const p = project(surfacePoints[i], radius * 0.995, cx, cy, cosY, sinY, cosTilt, sinTilt);
-      if (p.visible) {
-        const alpha = Math.max(0.08, p.z * 0.35);
-        ctx.fillStyle = `rgba(31, 127, 147, ${alpha})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 1.1, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    // 5. Routes (Arcs) & moving tracers
-    routeCurves.forEach((pts, rIdx) => {
-      ctx.beginPath();
-      let hasVisible = false;
-      let first = true;
-      for (let i = 0; i < pts.length; i++) {
-        const p = project(pts[i], radius, cx, cy, cosY, sinY, cosTilt, sinTilt);
-        if (p.visible) {
-          if (first) { ctx.moveTo(p.x, p.y); first = false; }
-          else ctx.lineTo(p.x, p.y);
-          hasVisible = true;
-        } else {
-          first = true;
-        }
-      }
-      if (hasVisible) {
-        ctx.strokeStyle = 'rgba(31, 127, 147, 0.28)';
-        ctx.lineWidth = 1.4;
-        ctx.stroke();
-      }
-
-      // Moving tracer packet
-      if (!reducedMotion && pts.length > 0) {
-        const tracerT = ((elapsed * (0.35 + (rIdx % 3) * 0.12) + rIdx * 0.25) % 1);
-        const idx = Math.min(Math.floor(tracerT * (pts.length - 1)), pts.length - 1);
-        const tp = project(pts[idx], radius, cx, cy, cosY, sinY, cosTilt, sinTilt);
-        if (tp.visible) {
-          ctx.fillStyle = 'rgba(20, 96, 111, 0.9)';
-          ctx.beginPath();
-          ctx.arc(tp.x, tp.y, 2.4, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
+      const start = Math.max(0, Math.floor(arc.head) - 34);
+      const count = Math.max(0, Math.min(34, arc.total - start));
+      arc.tracer.geometry.setDrawRange(start, count);
     });
 
-    // 6. Detection Markers (dots & pulsating radar rings)
-    detectionPoints.forEach((d) => {
-      const p = project(d.vec, radius * 1.01, cx, cy, cosY, sinY, cosTilt, sinTilt);
-      if (p.visible) {
-        const colors = SEVERITY_COLORS[d.severity] || SEVERITY_COLORS.indeterminate;
-        const pulse = reducedMotion ? 0.35 : ((elapsed * 0.65 + d.offset) % 1);
-        const ringRadius = 3 + pulse * 14;
-        const ringAlpha = Math.max(0, (1 - pulse) * 0.75);
-
-        // Expanding ring
-        ctx.strokeStyle = colors.fill;
-        ctx.globalAlpha = ringAlpha;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, ringRadius, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // Core marker dot
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = colors.fill;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2);
-        ctx.fill();
-      }
+    markers.forEach((marker) => {
+      const t = options.reducedMotion ? 0.35 : (elapsed * 0.55 + marker.offset) % 1;
+      const scale = 1 + t * 1.9;
+      marker.ring.scale.setScalar(scale);
+      marker.ring.material.opacity = 0.75 * (1 - t);
     });
 
-    ctx.restore();
-
-    animationFrameId = requestAnimationFrame(render);
-  }
-
-  animationFrameId = requestAnimationFrame(render);
+    renderer.render(scene, camera);
+    frame = requestAnimationFrame(render);
+  };
+  frame = requestAnimationFrame(render);
 
   return {
     setPointer(x, y) {
@@ -305,12 +301,18 @@ export function createGlobeScene(container, options = {}) {
       pointer.y = y;
     },
     dispose() {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
+      cancelAnimationFrame(frame);
       observer.disconnect();
-      if (canvas.parentNode === container) {
-        container.removeChild(canvas);
+      scene.traverse((object) => {
+        const mesh = object;
+        if (mesh.geometry) mesh.geometry.dispose();
+        const material = mesh.material;
+        if (Array.isArray(material)) material.forEach((m) => m.dispose());else
+        if (material) material.dispose();
+      });
+      renderer.dispose();
+      if (renderer.domElement.parentNode === container) {
+        container.removeChild(renderer.domElement);
       }
     }
   };

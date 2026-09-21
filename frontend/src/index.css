@@ -1,14 +1,59 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-.App { height: 100%; }
+/* Fonts first — a CSS @import must precede every other statement.
+   Inter = the app's declared sans; Bricolage Grotesque + IBM Plex Mono = entry-screen display / mono faces. */
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
 
-.focus-tip { background: rgba(255,255,255,0.97); color: #191c1e; border: 1px solid #b26a00; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; box-shadow: 0 4px 12px rgba(25,28,30,.12); }
-.focus-tip::before { border-top-color: #b26a00; }
+/* Tailwind must be emitted from here (CRA compiles it through PostCSS). Without these three
+   directives no utility class in the app is generated. Keep them above all custom CSS. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-.critical-banner { background: #ba1a1a; color: #fff; border-bottom: 1px solid #93000a; animation: critical-pulse 1.2s ease-in-out infinite; }
-@keyframes critical-pulse { 0%, 100% { background: #ba1a1a; } 50% { background: #93000a; } }
+@layer base {
+  /* shadcn/ui tokens, mapped to the light "Varuna Netra" redesign palette in tailwind.config.js
+     (so `bg-primary`, `bg-background`, `text-secondary` … resolve to the same colours as the shell). */
+  :root {
+    --background: 210 33% 98%;
+    --foreground: 204 9% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 204 9% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 204 9% 11%;
+    --primary: 201 100% 29%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 175 100% 21%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 12% 93%;
+    --muted-foreground: 208 12% 28%;
+    --accent: 210 9% 91%;
+    --accent-foreground: 204 9% 11%;
+    --destructive: 0 75% 42%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 17% 79%;
+    --input: 215 17% 79%;
+    --ring: 201 100% 29%;
+    --chart-1: 201 100% 29%;
+    --chart-2: 175 100% 21%;
+    --chart-3: 36 100% 35%;
+    --chart-4: 0 75% 42%;
+    --chart-5: 262 36% 48%;
+    --radius: 0.5rem;
+  }
 
-/* Template entry-screen UI */
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* ---- Entry / sign-in screen (components/landing/EntryScreen.jsx) ---- */
 .daylight { background: radial-gradient(115% 85% at 66% 40%, #fff 0%, #f5f3ee 46%, #e9e5dc 100%); }
+
+/* The entry screen's slate-blue body text (#5f7684). Scoping the shadcn `--muted` variable here keeps the
+   upstream `text-muted` / `text-muted/60` classes working without a second, colliding `muted` colour. */
+.entry-theme { --muted: 202.7 16.3% 44.5%; }
+.entry-theme .font-mono { font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
 @keyframes feed-scroll { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
 .feed-track { animation: feed-scroll 48s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .feed-track { animation: none; } }

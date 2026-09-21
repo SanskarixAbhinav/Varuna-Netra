@@ -39,9 +39,9 @@ export default function Login() {
   const googleSignIn = () => {
     if (googleBusy) return;
     setGoogleBusy(true);
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
     const redirectUrl = window.location.origin + "/";
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    const authEndpoint = process.env.REACT_APP_GOOGLE_AUTH_URL || `${process.env.REACT_APP_BACKEND_URL || ""}/api/auth/google`;
+    window.location.href = `${authEndpoint}?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
   const explore = async () => {

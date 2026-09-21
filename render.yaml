@@ -1,0 +1,59 @@
+# ==============================================================================
+# Render Blueprint Specification for Varuna Netra
+# https://render.com/docs/blueprint-spec
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # Backend: FastAPI Web Service
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: varuna-netra-backend
+    runtime: python
+    region: oregon
+    plan: starter
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: APP_ENV
+        value: production
+      - key: DEMO_MODE
+        value: "false"
+      - key: MONGO_URL
+        sync: false
+      - key: DB_NAME
+        value: varuna_netra
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: AISSTREAM_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: WEBHOOK_CRON_SECRET
+        generateValue: true
+
+  # ----------------------------------------------------------------------------
+  # Frontend: React Single-Page Application (Static Site)
+  # ----------------------------------------------------------------------------
+  - type: static
+    name: varuna-netra-frontend
+    rootDir: frontend
+    buildCommand: yarn install && yarn build
+    staticPublishPath: ./build
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: REACT_APP_BACKEND_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

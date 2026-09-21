@@ -40,9 +40,9 @@ export default function Signup() {
   };
 
   const googleSignIn = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
     const redirectUrl = window.location.origin + "/";
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    const authEndpoint = process.env.REACT_APP_GOOGLE_AUTH_URL || `${process.env.REACT_APP_BACKEND_URL || ""}/api/auth/google`;
+    window.location.href = `${authEndpoint}?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
   const inputCls = "w-full rounded border bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/60";

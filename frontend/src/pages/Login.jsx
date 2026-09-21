@@ -25,24 +25,13 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [googleBusy, setGoogleBusy] = useState(false);
   const [exploreBusy, setExploreBusy] = useState(false);
-  const [caps, setCaps] = useState(null);
   const [error, setError] = useState("");
 
-  useEffect(() => { api.get("/auth/capabilities").then((r) => setCaps(r.data)).catch(() => setCaps(null)); }, []);
-  const googleReady = caps?.authentication?.google?.enabled === true;
   const showDemo = caps?.demo_mode === true;
 
   if (user) return <Navigate to={loc.state?.from || "/"} replace />;
 
-  const googleSignIn = () => {
-    if (googleBusy) return;
-    setGoogleBusy(true);
-    const redirectUrl = window.location.origin + "/";
-    const authEndpoint = process.env.REACT_APP_GOOGLE_AUTH_URL || `${process.env.REACT_APP_BACKEND_URL || ""}/api/auth/google`;
-    window.location.href = `${authEndpoint}?redirect=${encodeURIComponent(redirectUrl)}`;
-  };
 
   const explore = async () => {
     if (exploreBusy) return;
@@ -116,18 +105,6 @@ export default function Login() {
           </button>
           <Link to="/forgot-password" data-testid="forgot-password-link" className="mt-3 block text-center font-mono text-[11px] uppercase tracking-wider text-slate-400 hover:text-cyan-300">Forgot password?</Link>
           <Link to="/signup" data-testid="create-account-link" className="mt-2 block text-center font-mono text-[11px] uppercase tracking-wider text-cyan-300 hover:text-cyan-200">Create account — free Viewer access</Link>
-
-          {googleReady && (
-            <div className="mt-5" data-testid="google-signin-block">
-              <div className="flex items-center gap-3"><span className="h-px flex-1" style={{ background: "var(--border-default)" }} /><span className="label-mono">or</span><span className="h-px flex-1" style={{ background: "var(--border-default)" }} /></div>
-              <button type="button" data-testid="google-signin-button" onClick={googleSignIn} disabled={googleBusy}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded border px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-slate-100 hover:bg-slate-800/60 disabled:opacity-50" style={{ borderColor: "var(--border-highlight)" }}>
-                <svg width="14" height="14" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.5l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.5 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.1.8-4.6l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.8l-7.7-6c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.6-4.1-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
-                {googleBusy ? "Redirecting to Google…" : "Continue with Google"}
-              </button>
-              <p className="mt-2 text-center text-[10px] text-slate-500">New Google users get read-only Viewer access. Existing accounts keep their role.</p>
-            </div>
-          )}
 
           {showDemo && <div className="mt-6 border-t pt-4" style={{ borderColor: "var(--border-default)" }}>
             <p className="label-mono mb-2">Demo accounts</p>

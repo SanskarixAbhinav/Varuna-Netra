@@ -92,7 +92,6 @@ async def api_health(request: Request):
         await db.command("ping")
     except Exception:  # noqa: BLE001
         db_ok = False
-    from google_auth import capabilities
     return {"status": "ok" if db_ok else "degraded", "ready": bool(getattr(app.state, "ready", False)), "environment": APP_ENV, "request_origin_seen": request.headers.get("origin"), "demo_mode": DEMO_MODE, "database": "online" if db_ok else "offline",
             "authentication": capabilities()["authentication"],
             "ais": {"key_configured": st["configured"], "state": st["state"], "feed": st.get("feed"), "connected": st["connected"], "subscription_confirmed": st["subscription_confirmed"],
@@ -151,7 +150,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=_cors_origins(),
-    allow_origin_regex=os.environ.get("CORS_ORIGIN_REGEX") or r"^https://.*\.onrender\.com$",
+    allow_origin_regex=os.environ.get("CORS_ORIGIN_REGEX") or None,
     allow_methods=["*"],
     allow_headers=["*"],
 )

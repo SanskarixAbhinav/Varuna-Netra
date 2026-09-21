@@ -11,11 +11,8 @@ export default function Signup() {
   const [f, setF] = useState({ name: "", email: "", password: "", confirm: "", organization: "" });
   const [busy, setBusy] = useState(false);
   const [exploreBusy, setExploreBusy] = useState(false);
-  const [caps, setCaps] = useState(null);
   const [error, setError] = useState("");
 
-  useEffect(() => { api.get("/auth/capabilities").then((r) => setCaps(r.data)).catch(() => setCaps(null)); }, []);
-  const googleReady = caps?.authentication?.google?.enabled === true;
 
   if (user) return <Navigate to="/" replace />;
 
@@ -39,11 +36,6 @@ export default function Signup() {
     try { await guestLogin(); nav("/", { replace: true }); } catch (err) { setError(apiError(err)); setExploreBusy(false); }
   };
 
-  const googleSignIn = () => {
-    const redirectUrl = window.location.origin + "/";
-    const authEndpoint = process.env.REACT_APP_GOOGLE_AUTH_URL || `${process.env.REACT_APP_BACKEND_URL || ""}/api/auth/google`;
-    window.location.href = `${authEndpoint}?redirect=${encodeURIComponent(redirectUrl)}`;
-  };
 
   const inputCls = "w-full rounded border bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/60";
   return (
@@ -78,12 +70,6 @@ export default function Signup() {
           <button data-testid="signup-submit-button" disabled={busy} type="submit" className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded bg-cyan-400 px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-slate-950 hover:bg-cyan-300 disabled:opacity-50">
             <UserPlus size={14} /> {busy ? "Creating…" : "Create account"}
           </button>
-          {googleReady && (
-            <button type="button" data-testid="signup-google-button" onClick={googleSignIn} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded border px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-slate-100 hover:bg-slate-800/60" style={{ borderColor: "var(--border-highlight)" }}>
-              <svg width="14" height="14" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.5l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.5 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.1.8-4.6l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.8l-7.7-6c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.6-4.1-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
-              Continue with Google
-            </button>
-          )}
           <div className="mt-5 flex items-center gap-3"><span className="h-px flex-1" style={{ background: "var(--border-default)" }} /><span className="label-mono">or</span><span className="h-px flex-1" style={{ background: "var(--border-default)" }} /></div>
           <button type="button" data-testid="signup-explore-button" onClick={explore} disabled={exploreBusy} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded border px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-cyan-200 hover:bg-cyan-400/10 disabled:opacity-50" style={{ borderColor: "rgba(0,240,255,0.4)" }}>
             <Compass size={14} /> {exploreBusy ? "Entering…" : "Explore without an account"}

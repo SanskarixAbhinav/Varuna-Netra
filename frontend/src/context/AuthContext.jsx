@@ -7,8 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // null = checking, false = anonymous
 
   useEffect(() => {
-    // Returning from Google OAuth: AuthCallback exchanges the session_id first, so skip the /me probe here.
-    if (!window.location.hash?.includes("session_id=")) api.get("/auth/me").then((r) => setUser(r.data)).catch(() => setUser(false));
+    api.get("/auth/me").then((r) => setUser(r.data)).catch(() => setUser(false));
     const onUnauth = () => setUser(false);
     window.addEventListener("sentinelmar:unauthorized", onUnauth);
     return () => window.removeEventListener("sentinelmar:unauthorized", onUnauth);
@@ -38,18 +37,13 @@ export const AuthProvider = ({ children }) => {
     return data;
   }, []);
 
-  const loginWithGoogleSession = useCallback(async (sessionId) => {
-    const { data } = await api.post("/auth/google/session", { session_id: sessionId });
-    setUser(data.user);
-    return data.user;
-  }, []);
 
   const logout = useCallback(async () => {
     try { await api.post("/auth/logout"); } catch (error) { console.warn("AuthContext: server logout failed, clearing local session anyway", error); }
     setUser(false);
   }, []);
 
-  const value = useMemo(() => ({ user, login, guestLogin, signup, refreshUser, loginWithGoogleSession, logout }), [user, login, guestLogin, signup, refreshUser, loginWithGoogleSession, logout]);
+  const value = useMemo(() => ({ user, login, guestLogin, signup, refreshUser, logout }), [user, login, guestLogin, signup, refreshUser, logout]);
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 };
 

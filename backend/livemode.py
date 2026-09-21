@@ -115,7 +115,7 @@ async def system_health() -> dict:
     last_ais = await db.ais_positions.find_one({"source": "AISStream"}, {"_id": 0, "timestamp": 1, "mmsi": 1}, sort=[("timestamp", -1)])
     day = datetime.now(timezone.utc) - timedelta(hours=24)
     return {"checked_at": datetime.now(timezone.utc), "uptime_s": int(time.time() - STARTED_AT), "database": {"online": db_ok}, "sentinel_stac": await stac_online(),
-            "authentication": __import__("google_auth").capabilities()["authentication"],
+            "authentication": {"email_password": {"enabled": True}, "google": {"enabled": False}, "guest": {"enabled": True, "role": "guest", "read_only": True}},
             "ais": await ais_status_public(), "ml_inference": ml, "last_scene": last_scene, "last_ais": last_ais, "data_mode": await data_mode(),
             "last_24h": {"scenes_registered": await db.scenes.count_documents({"created_at": {"$gte": day}}), "detections": await db.cases.count_documents({"created_at": {"$gte": day}}),
                          "alerts": await db.alerts.count_documents({"created_at": {"$gte": day}}), "jobs": await db.jobs.count_documents({"created_at": {"$gte": day}})},

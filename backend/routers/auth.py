@@ -7,7 +7,6 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from pydantic import BaseModel
 
 from auth import (check_lockout, clear_failures, create_access_token, create_guest_token, get_current_user, hash_password,
                   public_user, record_failure, require_role, verify_password, validate_password, rate_limit,
@@ -53,51 +52,12 @@ async def logout(response: Response, user=Depends(get_current_user)):
 
 @router.get("/auth/capabilities")
 async def auth_capabilities():
-    """Public, secret-free: which sign-in methods this deployment actually supports."""
-    from google_auth import capabilities
-    return capabilities()
-
-
-class GoogleSession(BaseModel):
-    session_id: str
-
-
-@router.post("/auth/google/session")
-async def google_session(body: GoogleSession, request: Request, response: Response):
-    """Exchange the Google session_id server-side; grant access ONLY to an existing active user (role from DB, never from the client)."""
-    from google_auth import google_status, fetch_google_identity
-    if not google_status()["enabled"]:
-        raise HTTPException(403, "Google sign-in is not enabled for this deployment")
-    ip = (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "unknown")).split(",")[0].strip()
-    ident = f"{ip}:google"
-    await check_lockout(ident)
-    try:
-        ident_data = await fetch_google_identity(body.session_id.strip())
-    except ValueError as e:
-        await record_failure(ident)
-        raise HTTPException(401, str(e))
-    email = ident_data["email"]
-    user = await db.users.find_one({"email": email})
-    if user and not user.get("active", True):
-        # Existing but disabled — Google must NOT silently reactivate.
-        await record_failure(ident)
-        await audit("user", user["id"], "auth.google_denied", {"email": email, "reason": "disabled"}, email)
-        raise HTTPException(403, "Your Varuna Netra account is disabled. Contact an administrator.")
-    if not user:
-        # Public auto-provisioning at LOWEST privilege. Role is forced server-side to viewer —
-        # never taken from the client, the form, or Google metadata. No auto-promotion, ever.
-        now = datetime.now(timezone.utc)
-        user = {"id": new_id(), "email": email, "name": ident_data.get("name") or email.split("@")[0],
-                "role": "viewer", "active": True, "auth_provider": "google", "email_verified": True,
-                "created_at": now, "first_login": now, "last_login": now, "last_login_method": "google"}
-        await db.users.insert_one(user)
-        await audit("user", user["id"], "auth.google_provisioned", {"email": email, "role": "viewer"}, email)
-    await clear_failures(ident)
-    token = create_access_token(user)
-    response.set_cookie("access_token", token, httponly=True, secure=True, samesite="lax", max_age=ACCESS_HOURS * 3600, path="/")
-    await db.users.update_one({"id": user["id"]}, {"$set": {"last_login": datetime.now(timezone.utc), "last_login_method": "google"}})
-    await audit("user", user["id"], "auth.login", {"email": email, "method": "google"}, email)
-    return {"access_token": token, "token_type": "bearer", "user": clean(public_user(user))}
+    """Public, secret-free capabilities for the standalone deployment."""
+    return {"authentication": {
+        "email_password": {"enabled": True, "signup": True, "default_role": "viewer", "password_policy": "min 10 chars, letters + numbers"},
+        "google": {"enabled": False, "configured": False, "status": "DISABLED", "provider": "Not configured"},
+        "guest": {"enabled": True, "role": "guest", "read_only": True}
+    }}
 
 
 @router.post("/auth/guest")
@@ -123,9 +83,8 @@ async def signup(body: SignupRequest, request: Request, response: Response):
             raise HTTPException(403, "Your Varuna Netra account is disabled. Contact an administrator.")
         if existing.get("password_hash"):
             raise HTTPException(400, "An account with this e-mail already exists. Please sign in.")
-        # Google-only account signing up with a password → link it, PRESERVE the stored role (never downgrade/upgrade)
         await db.users.update_one({"id": existing["id"]}, {"$set": {"password_hash": hash_password(body.password),
-                                  "name": existing.get("name") or body.name.strip(), "organization": body.organization, "auth_provider": "google+password"}})
+                                  "name": existing.get("name") or body.name.strip(), "organization": body.organization, "auth_provider": "password"}})
         user = await db.users.find_one({"id": existing["id"]})
         await audit("user", user["id"], "auth.signup_linked", {"email": email}, email)
     else:

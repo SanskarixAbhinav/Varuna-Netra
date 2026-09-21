@@ -184,9 +184,7 @@ class AssistantAsk(BaseModel):
 
 @router.get("/assistant/status")
 async def assistant_status(user=Depends(get_current_user)):
-    model_name = os.environ.get("LLM_MODEL", "gpt-4o")
-    has_key = bool(_cfg("OPENAI_API_KEY") or _cfg("EMERGENT_LLM_KEY"))
-    return {"enabled": has_key, "model": model_name, "grounded": True,
+    return {"enabled": _cfg("OPENAI_API_KEY"), "model": "gpt-4o-mini", "grounded": True,
             "note": "Answers are grounded only in this case's stored evidence. It never invents scenes, AIS, vessels, confidence or metrics."}
 
 
@@ -197,7 +195,7 @@ async def case_assistant(case_id: str, body: AssistantAsk, user=Depends(get_curr
     entitlement = await current_entitlement(user)
     if entitlement.get("plan") not in ("pro", "institution") or entitlement.get("status") not in ("active", "trialing"):
         raise HTTPException(402, {"code": "ENTITLEMENT_REQUIRED", "required": "pro", "message": "The case assistant requires an active Pro or Institution plan."})
-    key = os.environ.get("OPENAI_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")
+    key = os.environ.get("OPENAI_API_KEY")
     if not key:
         raise HTTPException(503, "AI assistant NOT CONFIGURED (no LLM key).")
     if user.get("is_guest"):
@@ -221,41 +219,22 @@ async def case_assistant(case_id: str, body: AssistantAsk, user=Depends(get_curr
               "Never invent satellite scenes, AIS positions, vessels, coordinates, confidence values, environmental data or metrics. "
               "If the answer is not in the data, say it is not available in this case. Be concise, factual, and neutral. "
               "Ranked candidates are decision support, NOT a legal determination of responsibility.")
-    model_name = os.environ.get("LLM_MODEL", "gpt-4o")
     try:
         import json as _json
-        user_content = f"CASE DATA (JSON):\n{_json.dumps(context, default=str)}\n\nQUESTION: {body.question}"
-        try:
-            from openai import AsyncOpenAI
-            client = AsyncOpenAI(api_key=key)
-            resp = await client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user_content}
-                ],
-                max_tokens=800,
-                temperature=0.2
-            )
-            answer = resp.choices[0].message.content
-        except Exception:
-            import litellm
-            resp = await litellm.acompletion(
-                model=model_name,
-                api_key=key,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user_content}
-                ]
-            )
-            answer = resp.choices[0].message.content
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=key)
+        completion = await client.chat.completions.create(model="gpt-4o-mini", temperature=0, messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": f"CASE DATA (JSON):\n{_json.dumps(context, default=str)}\n\nQUESTION: {body.question}"},
+        ])
+        answer = completion.choices[0].message.content or "No answer available."
     except Exception as e:  # noqa: BLE001
         logger.exception("assistant failed")
         raise HTTPException(502, f"AI assistant error: {str(e)[:150]}")
     now = datetime.now(timezone.utc)
     await db.assistant_messages.insert_one({"case_id": case_id, "user_id": user.get("id"), "question": body.question,
-                                            "answer": str(answer), "model": model_name, "created_at": now})
-    return {"case_id": case_id, "question": body.question, "answer": str(answer), "model": model_name,
+                                            "answer": str(answer), "model": "gpt-4o-mini", "created_at": now})
+    return {"case_id": case_id, "question": body.question, "answer": str(answer), "model": "gpt-4o-mini",
             "grounded_in": {"case_number": context["case_number"], "candidates": len(cands)},
             "disclaimer": "Grounded in stored case evidence only. Decision support — not a legal determination."}
 

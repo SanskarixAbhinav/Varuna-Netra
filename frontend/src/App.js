@@ -23,7 +23,6 @@ import Verify from "@/pages/Verify";
 import { LiveFeedProvider } from "@/context/LiveFeed";
 import { InactivityGuard } from "@/components/InactivityGuard";
 import { ForgotPassword, ResetPassword } from "@/pages/PasswordReset";
-import AuthCallback from "@/pages/AuthCallback";
 import Signup from "@/pages/Signup";
 import Account from "@/pages/Account";
 import Validation from "@/pages/Validation";
@@ -41,8 +40,6 @@ const Protected = ({ children, role }) => {
 
 const AppRoutes = () => {
   const location = useLocation();
-  // OAuth return: session_id lives in the URL fragment — must be handled before any Protected route runs.
-  if (location.hash?.includes("session_id=")) return <AuthCallback />;
   return (
           <Routes>
             <Route path="/login" element={<Login />} />

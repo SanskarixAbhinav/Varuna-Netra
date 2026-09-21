@@ -9,10 +9,8 @@ import pymongo
 
 load_dotenv(Path(__file__).parent / ".env")
 
-mongo_url = os.environ.get("MONGO_URL") or os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
-db_name = os.environ.get("DB_NAME", "sentinelmar")
-client = AsyncIOMotorClient(mongo_url)
-db = client[db_name]
+client = AsyncIOMotorClient(os.environ["MONGO_URL"])
+db = client[os.environ["DB_NAME"]]
 
 
 async def ensure_indexes() -> None:

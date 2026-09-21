@@ -4,7 +4,7 @@ import { Activity, Satellite, Radio, Database, Cpu, Trash2, Download, ShieldAler
 import { api, apiError, fmtTime, hasRole, pollJob } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
-const Dot = ({ ok, warn }) => <span className={`inline-block h-2 w-2 rounded-full ${ok ? "bg-emerald-400 shadow-[0_0_8px_#10B981]" : warn ? "bg-amber-400 shadow-[0_0_8px_#FFB703]" : "bg-rose-500 shadow-[0_0_8px_#FF2A6D]"}`} />;
+const Dot = ({ ok, warn }) => <span className={`inline-block h-2 w-2 rounded-full ${ok ? "bg-emerald-400 shadow-[0_0_8px_#006a61]" : warn ? "bg-amber-400 shadow-[0_0_8px_#b26a00]" : "bg-rose-500 shadow-[0_0_8px_#ba1a1a]"}`} />;
 const card = { border: "1px solid var(--border-default)", background: "var(--bg-secondary)" };
 const Card = ({ icon: Icon, title, ok, warn, children, testid }) => (
   <section className="rounded p-4" style={card} data-testid={testid}>
@@ -91,7 +91,7 @@ export default function SystemHealth() {
             <div className="mt-2 flex flex-wrap gap-1" data-testid="monitor-region-select">
               <span className="label-mono mr-1 self-center">Monitor region</span>
               {[["west_coast", "West Coast"], ["east_coast", "East Coast"], ["south_india", "South India"], ["andaman_nicobar", "Andaman & Nicobar"], ["default", "All India"]].map(([k, l]) => (
-                <button key={k} data-testid={`region-${k}`} disabled={busy} onClick={() => setRegion(k)} className="rounded border px-2 py-0.5 text-[10px] uppercase text-slate-300 hover:text-white disabled:opacity-50" style={{ borderColor: "var(--border-highlight)" }}>{l}</button>
+                <button key={k} data-testid={`region-${k}`} disabled={busy} onClick={() => setRegion(k)} className="rounded border px-2 py-0.5 text-[10px] uppercase text-slate-300 hover:text-on-surface disabled:opacity-50" style={{ borderColor: "var(--border-highlight)" }}>{l}</button>
               ))}
             </div>
           )}

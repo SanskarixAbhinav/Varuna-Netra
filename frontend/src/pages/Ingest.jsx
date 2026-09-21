@@ -13,7 +13,7 @@ const Field = ({ label, children }) => <label className="block"><span className=
 const Btn = ({ children, ...p }) => <button {...p} className="rounded bg-cyan-400 px-4 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-950 hover:bg-cyan-300 disabled:opacity-50">{children}</button>;
 const Card = ({ icon: Icon, title, sub, children, testId }) => (
   <div className="panel p-5 fade-up" data-testid={testId}>
-    <div className="mb-4 flex items-center gap-2"><Icon size={16} color="#00F0FF" /><h2 className="font-display text-lg font-semibold">{title}</h2></div>
+    <div className="mb-4 flex items-center gap-2"><Icon size={16} color="#006194" /><h2 className="font-display text-lg font-semibold">{title}</h2></div>
     <p className="mb-4 -mt-3 text-xs text-slate-400">{sub}</p>
     {children}
   </div>
@@ -119,9 +119,9 @@ const SceneRow = ({ s, onDone }) => {
   };
   return (
     <tr data-testid={`scene-row-${s.provider_scene_id}`} className="border-t" style={{ borderColor: "var(--border-default)" }}>
-      <td className="px-4 py-2 text-slate-300">{s.provider}{real && <span className="ml-1 rounded px-1 font-mono text-[9px] uppercase text-emerald-300" style={{ border: "1px solid rgba(16,185,129,0.5)" }}>real</span>}</td><td className="px-4 py-2 font-mono text-[10px] text-cyan-300">{s.provider_scene_id}</td>
+      <td className="px-4 py-2 text-slate-300">{s.provider}{real && <span className="ml-1 rounded px-1 font-mono text-[9px] uppercase text-emerald-300" style={{ border: "1px solid rgba(0,106,97,0.5)" }}>real</span>}</td><td className="px-4 py-2 font-mono text-[10px] text-cyan-300">{s.provider_scene_id}</td>
       <td className="px-4 py-2 font-mono text-slate-400">{fmtTime(s.acquisition_time)}</td><td className="px-4 py-2 font-mono text-[10px] uppercase text-slate-400">{s.status}</td>
-      <td className="px-4 py-2 text-right"><button data-testid={`btn-mock-detect-${s.provider_scene_id}`} disabled={busy} onClick={detect} title={real ? "Experimental dark-spot detector on the real SAR asset" : "No SAR asset — mock placeholder (DEMO mode only)"} className="inline-flex items-center gap-1 rounded border px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-purple-300 hover:bg-purple-400/10 disabled:opacity-50" style={{ borderColor: "rgba(157,78,221,0.5)" }}><Scan size={11} /> {busy ? "Detecting…" : real ? "Detect (SAR)" : "Mock detect"}</button></td>
+      <td className="px-4 py-2 text-right"><button data-testid={`btn-mock-detect-${s.provider_scene_id}`} disabled={busy} onClick={detect} title={real ? "Experimental dark-spot detector on the real SAR asset" : "No SAR asset — mock placeholder (DEMO mode only)"} className="inline-flex items-center gap-1 rounded border px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-purple-300 hover:bg-purple-400/10 disabled:opacity-50" style={{ borderColor: "rgba(111,79,168,0.5)" }}><Scan size={11} /> {busy ? "Detecting…" : real ? "Detect (SAR)" : "Mock detect"}</button></td>
     </tr>
   );
 };
@@ -212,7 +212,7 @@ const AisForm = ({ onDone }) => {
     <Card icon={Radio} title="AIS batch ingest" sub="Deduplicated by MMSI/time/position. Quality checks flag naive timestamps, implausible speed, invalid MMSI, missing identity." testId="ais-form">
       <div className="mb-3 flex gap-1">
         {[["csv", "CSV upload"], ["json", "JSON payload"]].map(([m, l]) => (
-          <button key={m} data-testid={`ais-mode-${m}`} onClick={() => setMode(m)} className={`rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors ${mode === m ? "bg-cyan-400/15 text-cyan-300 border border-cyan-400/40" : "text-slate-400 border border-slate-700 hover:text-slate-100"}`}>{l}</button>
+          <button key={m} data-testid={`ais-mode-${m}`} onClick={() => setMode(m)} className={`rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors ${mode === m ? "bg-cyan-400/15 text-cyan-300 border border-cyan-400/40" : "text-slate-400 border border-slate-700 hover:text-on-surface"}`}>{l}</button>
         ))}
       </div>
       {mode === "csv" ? <CsvUpload onDone={onDone} /> : (

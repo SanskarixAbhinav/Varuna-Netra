@@ -14,7 +14,7 @@ export const Provenance = ({ caseId }) => {
   if (!p) return null;
   const ais = p.ais.status || {};
   return (
-    <div className="mx-4 my-3 rounded border p-3 font-mono text-[11px]" style={{ borderColor: "var(--border-highlight)", background: "rgba(0,240,255,0.03)" }} data-testid="provenance-panel">
+    <div className="mx-4 my-3 rounded border p-3 font-mono text-[11px]" style={{ borderColor: "var(--border-highlight)", background: "rgba(0,97,148,0.03)" }} data-testid="provenance-panel">
       <div className="mb-2 flex flex-wrap items-center gap-2"><Fingerprint size={13} className="text-cyan-300" /><span className="font-display text-sm font-semibold">Data provenance</span><Badge v={p.data_mode} testid="provenance-data-mode" />{p.case_origin_label && <Badge v={p.case_origin_label} testid="provenance-case-origin" />}</div>
       <div className="grid gap-x-6 gap-y-1 md:grid-cols-2 xl:grid-cols-3">
         <div><p className="label-mono mb-1 flex items-center gap-2">Satellite <Badge v={p.satellite.badge} testid="provenance-sat-badge" /></p>

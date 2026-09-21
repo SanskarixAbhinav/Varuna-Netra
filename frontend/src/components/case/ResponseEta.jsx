@@ -9,8 +9,8 @@ export const ResponseEta = ({ caseId }) => {
   const [err, setErr] = useState(null);
   useEffect(() => { api.get(`/cases/${caseId}/response-eta`).then((r) => setD(r.data)).catch((e) => setErr(apiError(e))); }, [caseId]);
   return (
-    <div className="mx-4 mt-4 rounded border p-3" style={{ borderColor: "rgba(16,185,129,0.4)", background: "rgba(16,185,129,0.04)" }} data-testid="response-eta">
-      <div className="flex items-center gap-2"><LifeBuoy size={13} color="#10B981" /><span className="font-display text-sm font-semibold">Nearest response assets · ETA</span><span className="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-amber-300" style={{ border: "1px solid currentColor" }}>approximate</span></div>
+    <div className="mx-4 mt-4 rounded border p-3" style={{ borderColor: "rgba(0,106,97,0.4)", background: "rgba(0,106,97,0.04)" }} data-testid="response-eta">
+      <div className="flex items-center gap-2"><LifeBuoy size={13} color="#006a61" /><span className="font-display text-sm font-semibold">Nearest response assets · ETA</span><span className="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-amber-300" style={{ border: "1px solid currentColor" }}>approximate</span></div>
       {err && <p className="mt-2 text-xs text-rose-300">{err}</p>}
       {d && !d.available && <p className="mt-2 text-xs text-slate-400" data-testid="response-eta-unavailable">{d.note} Nearest ICG station {d.nearest_station.name} is {d.nearest_station.distance_km} km away.</p>}
       {d?.available && (

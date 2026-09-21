@@ -50,10 +50,10 @@ export const CorrelatePanel = ({ caseId, defaults, spill, onDone }) => {
         <button data-testid="btn-correlate-run" disabled={busy} onClick={run} className="inline-flex items-center gap-1.5 rounded bg-cyan-400 px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-950 hover:bg-cyan-300 disabled:opacity-50">
           <Play size={12} /> {busy ? "Running…" : "Run correlation"}
         </button>
-        <button data-testid="btn-correlate-params-toggle" onClick={() => setOpen(!open)} className="inline-flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-slate-300 hover:text-white" style={{ borderColor: "var(--border-highlight)" }}>
+        <button data-testid="btn-correlate-params-toggle" onClick={() => setOpen(!open)} className="inline-flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-slate-300 hover:text-on-surface" style={{ borderColor: "var(--border-highlight)" }}>
           <Settings2 size={12} /> Parameters
         </button>
-        <button data-testid="btn-fetch-weather" disabled={fetching} onClick={fetchWeather} className="inline-flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider hover:text-white disabled:opacity-50" style={{ borderColor: "rgba(157,78,221,0.5)", color: "#C77DFF" }}>
+        <button data-testid="btn-fetch-weather" disabled={fetching} onClick={fetchWeather} className="inline-flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider hover:text-on-surface disabled:opacity-50" style={{ borderColor: "rgba(111,79,168,0.5)", color: "#8a63d2" }}>
           <CloudSun size={12} /> {fetching ? "Fetching…" : "Live weather"}
         </button>
         {log && <span className="font-mono text-[11px] text-cyan-300" data-testid="correlate-job-status">{log}</span>}
@@ -61,7 +61,7 @@ export const CorrelatePanel = ({ caseId, defaults, spill, onDone }) => {
       <div className="px-4 pb-2.5 font-mono text-[10px] text-slate-400" data-testid="environment-summary">
         {spill?.wind || spill?.current ? (
           <>wind {spill.wind ? `${spill.wind.speed_ms} m/s from ${spill.wind.direction_deg}°` : "—"} · current {spill.current ? `${spill.current.speed_ms} m/s → ${spill.current.direction_deg}°` : "—"}
-            {env && <span style={{ color: "#C77DFF" }}> · {env.source} ({env.wind_model}) @ {env.wind?.valid_time || env.current?.valid_time}</span>}
+            {env && <span style={{ color: "#8a63d2" }}> · {env.source} ({env.wind_model}) @ {env.wind?.valid_time || env.current?.valid_time}</span>}
             {!env && <span> · supplied with observation</span>}</>
         ) : <span className="text-purple-300">no wind/current on this observation — drift degraded; fetch live weather or enter manually</span>}
       </div>

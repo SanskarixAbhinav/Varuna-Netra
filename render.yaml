@@ -1,19 +1,12 @@
-# Render Blueprint for Varuna Netra
-# Uses two ordinary Web Services so it works even when a Render Blueprint
-# validator rejects the static-site runtime.
 services:
   - type: web
-    runtime: python
-    name: varuna-netra-api
-    rootDir: backend
-    region: singapore
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    name: varuna-netra
+    runtime: docker
+    plan: free           # 512 MB RAM; sleeps after 15 min idle (see keep-alive note in the guide)
     healthCheckPath: /health
     autoDeployTrigger: commit
     envVars:
-      - key: MONGO_URL
+      - key: MONGO_URL           # MongoDB Atlas SRV connection string
         sync: false
       - key: DB_NAME
         value: varuna_netra
@@ -23,41 +16,17 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
-      - key: FRONTEND_URL
-        fromService:
-          name: varuna-netra-web
-          type: web
-          envVarKey: RENDER_EXTERNAL_URL
-      - key: CORS_ORIGINS
-        fromService:
-          name: varuna-netra-web
-          type: web
-          envVarKey: RENDER_EXTERNAL_URL
-      - key: APP_ENV
-        value: production
-      - key: DEMO_MODE
+      - key: DEMO_MODE           # "true" seeds labelled demo data; set "false" for a clean production DB
         value: "true"
-      - key: AISSTREAM_API_KEY
-        sync: false
-      - key: AIS_INGEST_ENABLED
-        value: "true"
-      - key: OPENAI_API_KEY
-        sync: false
-
-  - type: web
-    runtime: node
-    name: varuna-netra-web
-    rootDir: frontend
-    region: singapore
-    plan: free
-    buildCommand: yarn install --frozen-lockfile && yarn build
-    startCommand: node server.js
-    autoDeployTrigger: commit
-    envVars:
-      - key: NODE_VERSION
-        value: "20.19.0"
-      - key: REACT_APP_BACKEND_URL
-        fromService:
-          name: varuna-netra-api
-          type: web
-          envVarKey: RENDER_EXTERNAL_URL
+      - key: DEMO_SUPERVISOR_EMAIL
+        value: supervisor@varuna.example
+      - key: DEMO_ANALYST_EMAIL
+        value: analyst@varuna.example
+      - key: DEMO_SUPERVISOR_PASSWORD
+        generateValue: true
+      - key: DEMO_ANALYST_PASSWORD
+        generateValue: true
+      - key: MALLOC_ARENA_MAX
+        value: "2"
+      - key: WEBHOOK_CRON_SECRET
+        generateValue: true

@@ -44,7 +44,7 @@ DEFAULT_REGIONS = [k for k, v in REGIONS.items() if not v.get("global")]
 
 state = {"connected": False, "subscription_confirmed": False, "socket_open": False, "subscription_sent_at": None, "subscription_kind": None, "last_connect_attempt": None, "last_close_code": None,
          "role": "starting", "messages_at_connect": 0, "messages": 0, "positions": 0, "inserted": 0, "last_message_at": None, "last_position_at": None,
-         "connected_at": None, "last_disconnect_at": None, "error": None, "reconnects": 0, "msg_times": [], "active": {}}
+         "connected_at": None, "last_disconnect_at": None, "error": None, "reconnects": 0, "msg_times": [], "active": {}, "last_close_reason": None, "last_exception": None, "kicks": 0, "handshake_fails": 0, "last_http_status": None}
 _task: Optional[asyncio.Task] = None
 _buffer: list = []
 _reconnect_event = asyncio.Event()
@@ -207,8 +207,8 @@ def _handle(msg: dict) -> None:
 
 
 async def _session(key: str, boxes: list) -> None:
-    async with websockets.connect(WS_URL, ping_interval=20, close_timeout=5, max_size=2**22) as ws:
-        state.update({"connected_at": datetime.now(timezone.utc), "socket_open": True, "error": None, "last_close_code": None})
+    async with websockets.connect(WS_URL, ping_interval=20, close_timeout=5, open_timeout=20, max_size=2**22) as ws:
+        state.update({"connected_at": datetime.now(timezone.utc), "socket_open": True, "error": None, "last_close_code": None, "handshake_fails": 0, "last_http_status": None})
         await ws.send(json.dumps({"APIKey": key, "BoundingBoxes": boxes, "FilterMessageTypes": FILTER_TYPES}))
         state["subscription_sent_at"] = datetime.now(timezone.utc)
         logger.info("aisstream websocket open, subscription sent for %d bbox(es)", len(boxes))
@@ -267,6 +267,53 @@ async def _snapshot() -> None:
         pass
 
 
+def _http_rejection(e: Exception) -> Optional[tuple]:
+    """If the failure happened during the HTTP upgrade (server answered with a non-101 status), return (status, phrase, body).
+    websockets raises InvalidStatus (v13+) / InvalidStatusCode (older) for this — it is NOT a 'key in use' signal."""
+    resp = getattr(e, "response", None)
+    status = getattr(resp, "status_code", None) or getattr(e, "status_code", None)
+    if not status:
+        return None
+    phrase = getattr(resp, "reason_phrase", "") or ""
+    body = getattr(resp, "body", b"") or b""
+    try:
+        body = body.decode("utf-8", "replace") if isinstance(body, (bytes, bytearray)) else str(body)
+    except Exception:  # noqa: BLE001
+        body = ""
+    return int(status), phrase, " ".join(body.split())[:160]
+
+
+def _handshake_message(status: int, phrase: str, body: str) -> tuple:
+    """(operator message, retry delay in seconds) for an HTTP-level rejection."""
+    extra = f' Server said: "{body}".' if body else ""
+    if status in (401, 403):
+        return (f"HANDSHAKE_REJECTED: AISStream answered HTTP {status} {phrase}".strip() + " before the socket opened. The key was refused or this host's IP is blocked — "
+                f"create a fresh key at aisstream.io, make sure it is Active, and paste it into AISSTREAM_API_KEY with no spaces/quotes.{extra}", 120.0)
+    if status == 429:
+        return (f"HANDSHAKE_REJECTED: AISStream answered HTTP 429 (too many connection attempts from this host). Backing off automatically — do not redeploy repeatedly.{extra}", 300.0)
+    if status >= 500:
+        return (f"HANDSHAKE_REJECTED: AISStream answered HTTP {status} {phrase}".strip() + f" — their service is temporarily unavailable. Retrying automatically with back-off.{extra}", 90.0)
+    return (f"HANDSHAKE_REJECTED: AISStream answered HTTP {status} {phrase}".strip() + f" instead of opening a WebSocket.{extra}", 120.0)
+
+
+async def _sleep_or_reconnect(seconds: float) -> None:
+    """Back-off sleep that a manual 'Reconnect now' (or a coverage change) can cut short."""
+    try:
+        await asyncio.wait_for(_reconnect_event.wait(), timeout=seconds)
+    except asyncio.TimeoutError:
+        pass
+
+
+def reconnect_now() -> dict:
+    """Operator action: forget the failure streak / conflict verdict and dial AISStream again immediately."""
+    state["kicks"] = 0
+    state["handshake_fails"] = 0
+    if str(state.get("error") or "").startswith(("KEY_IN_USE_ELSEWHERE", "KEY_ROTATED", "HANDSHAKE_REJECTED")):
+        state["error"] = None
+    _reconnect_event.set()
+    return {"ok": True, "message": "Reconnecting to AISStream now"}
+
+
 async def _run() -> None:
     attempt = 0
     logger.info("AISStream API key configured: %s", key_configured())
@@ -302,11 +349,24 @@ async def _run() -> None:
             code = getattr(e, "code", None) or getattr(getattr(e, "rcvd", None), "code", None)
             session_s = (datetime.now(timezone.utc) - state["last_connect_attempt"]).total_seconds() if state["last_connect_attempt"] else 0
             got_msgs = state["messages"] > state.get("messages_at_connect", 0)
-            state["kicks"] = 0 if got_msgs or session_s > 20 else state.get("kicks", 0) + 1  # accepted then dropped in <20 s with zero frames = another client took the key
-            state.update({"error": str(e)[:300], "last_close_code": code, "reconnects": state["reconnects"] + 1, "last_disconnect_at": datetime.now(timezone.utc)})
+            http = _http_rejection(e)
+            if http:  # the server refused the HTTP upgrade itself — a different problem from "another client took the key"
+                state["kicks"] = 0
+                state["handshake_fails"] = state.get("handshake_fails", 0) + 1
+                state["last_http_status"] = http[0]
+            else:
+                state["kicks"] = 0 if got_msgs or session_s > 20 else state.get("kicks", 0) + 1  # accepted then dropped in <20 s with zero frames = another client took the key
+            rcvd = getattr(e, "rcvd", None)
+            reason_txt = (getattr(rcvd, "reason", "") or "").strip()
+            state.update({"error": str(e)[:300], "last_close_code": code, "last_close_reason": reason_txt or None, "last_exception": f"{type(e).__name__}: {str(e)[:200]}",
+                          "reconnects": state["reconnects"] + 1, "last_disconnect_at": datetime.now(timezone.utc)})
             if got_msgs:
                 attempt = 0  # healthy session before the drop → restart the backoff ladder
-            if state["kicks"] >= 3:
+            if http:
+                msg_txt, base = _handshake_message(*http)
+                state["error"] = msg_txt
+                delay = min(600.0, base * (1.6 ** min(state["handshake_fails"] - 1, 3))) + random.uniform(0, 10)
+            elif state["kicks"] >= 3:
                 keys = api_keys()
                 if len(keys) > 1:
                     state["key_index"] = (state.get("key_index", 0) + 1) % len(keys)
@@ -316,13 +376,16 @@ async def _run() -> None:
                     delay = 5 + random.uniform(0, 3)
                     logger.warning("aisstream: key in use elsewhere — rotating to pool key #%d/%d", state["key_index"] + 1, len(keys))
                 else:
-                    state["error"] = "KEY_IN_USE_ELSEWHERE: AISStream closed the socket right after subscription 3× in a row without data — this API key is being used by another client (AISStream allows one connection per key; e.g. preview + production sharing a key). Use a separate key per deployment or set AIS_INGEST_ENABLED=false on the other one."
-                    delay = 120 + random.uniform(0, 30)  # stop fighting the other deployment
+                    state["error"] = (f"KEY_IN_USE_ELSEWHERE: AISStream closed the socket right after subscription 3× in a row without sending any data "
+                                      f"(last close: code={code}, reason={reason_txt or 'none'}; {type(e).__name__}). Most often this key is also in use by another client "
+                                      "(AISStream allows one connection per key — e.g. a second Render service, a local run, or a preview sharing the key). "
+                                      "Give each deployment its own key, or set AIS_INGEST_ENABLED=false on the other one.")
+                    delay = 45 + random.uniform(0, 15)  # back off, but retry soon so a fixed setup recovers by itself
             else:
                 delay = BACKOFF[min(attempt, len(BACKOFF) - 1)] + random.uniform(0, 1)
             attempt += 1
-            logger.warning("aisstream disconnected (%s, close=%s); reconnect in %.1fs", str(e)[:120], code, delay)
-            await asyncio.sleep(delay)
+            logger.warning("aisstream disconnected (%s: %s, close=%s, reason=%r); reconnect in %.1fs", type(e).__name__, str(e)[:120], code, reason_txt, delay)
+            await _sleep_or_reconnect(delay)
         finally:
             state.update({"connected": False, "subscription_confirmed": False, "socket_open": False, "subscription_sent_at": None, "messages_at_connect": state["messages"]})
             await _snapshot()
@@ -339,6 +402,16 @@ def stop() -> None:
     """Cancel the worker so the process shuts down promptly (supervisor SIGTERM → no 20 s SIGKILL wait)."""
     if _task and not _task.done():
         _task.cancel()
+
+
+async def stop_and_wait(timeout: float = 6.0) -> None:
+    """Shutdown path: cancel the worker AND wait for it, so the AISStream socket gets a proper close handshake.
+    A container that is killed with the socket still open leaves AISStream believing the connection is alive for a few
+    minutes — the replacement instance is then refused with HTTP 429 (concurrent connections per user exceeded)."""
+    t = _task
+    if t and not t.done():
+        t.cancel()
+        await asyncio.wait({t}, timeout=timeout)
 
 
 def connection_state() -> str:
@@ -383,11 +456,12 @@ def _status_fields() -> dict:
             "messages_received": state["messages"], "positions_parsed": state["positions"], "regional_messages": state["positions"], "positions_stored": state["inserted"], "messages_per_min": messages_per_min(), "messages_per_minute": messages_per_min(),
             "vessels_active": len(state["active"]), "active_vessels": len(state["active"]),
             "last_connect_attempt": state["last_connect_attempt"], "last_connected_at": state["connected_at"], "last_message_at": state["last_message_at"], "last_position_at": state["last_position_at"],
-            "last_disconnect_at": state["last_disconnect_at"], "last_error": state["error"], "error": state["error"], "last_close_code": state["last_close_code"], "reconnects": state["reconnects"], "reconnect_count": state["reconnects"],
+            "last_disconnect_at": state["last_disconnect_at"], "last_close_reason": state.get("last_close_reason"), "last_exception": state.get("last_exception"), "failure_streak": state.get("kicks", 0), "last_http_status": state.get("last_http_status"), "last_error": state["error"], "error": state["error"], "last_close_code": state["last_close_code"], "reconnects": state["reconnects"], "reconnect_count": state["reconnects"],
             "worker_running": bool(_task and not _task.done()), "worker_role": state["role"], "worker_owner": OWNER,
             "reason": None if (state["socket_open"] and state["subscription_confirmed"]) else (
                 STANDBY_DISABLED_REASON if state["role"] == "disabled" else
                 "API key not configured" if not key_configured() else
+                state["error"] if str(state["error"] or "").startswith("HANDSHAKE_REJECTED") else
                 KEY_CONFLICT_REASON if st == "KEY_CONFLICT" else
                 "WebSocket authentication failed (AISStream rejected the API key)" if state["error"] and ("api key" in str(state["error"]).lower() or "1008" in str(state["error"])) else
                 "Connection lost — reconnecting with backoff" if state["error"] else "Connecting")}
@@ -417,6 +491,12 @@ async def test_connection(timeout_s: float = 12.0) -> dict:
     if not out["configured"]:
         out["error"] = "API key not configured"
         return out
+    if state["role"] == "ingest" and _task and not _task.done():
+        # AISStream allows ONE connection per key: opening a second socket here would kick the live worker (and look like a key conflict).
+        # So report the worker's own connection instead.
+        out.update({"websocket": bool(state["socket_open"]), "subscription": bool(state["subscription_confirmed"]), "message_received": state["messages"] > 0,
+                    "error": state["error"], "note": "Live worker owns the single AISStream connection — result reflects the worker, no second socket opened."})
+        return out
     t = time.time()
     try:
         cov = await get_coverage()
@@ -433,5 +513,6 @@ async def test_connection(timeout_s: float = 12.0) -> dict:
     except asyncio.TimeoutError:
         out["error"] = "no AIS message within timeout (coverage may be empty right now)"
     except Exception as e:  # noqa: BLE001
-        out["error"] = str(e)[:200]
+        http = _http_rejection(e)
+        out["error"] = _handshake_message(*http)[0] if http else str(e)[:200]
     return out

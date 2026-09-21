@@ -37,7 +37,7 @@ export function CandidateComparison({ caseId }) {
   return (
     <div data-testid="candidate-comparison">
       <div className="mb-3 flex items-center gap-2">
-        <span className="rounded px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider" style={{ color: ambiguous ? "#FFB703" : "#10B981", background: ambiguous ? "rgba(255,183,3,0.1)" : "rgba(16,185,129,0.1)", border: `1px solid ${ambiguous ? "rgba(255,183,3,0.35)" : "rgba(16,185,129,0.35)"}` }}>{d.verdict}</span>
+        <span className="rounded px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider" style={{ color: ambiguous ? "#b26a00" : "#006a61", background: ambiguous ? "rgba(178,106,0,0.1)" : "rgba(0,106,97,0.1)", border: `1px solid ${ambiguous ? "rgba(178,106,0,0.35)" : "rgba(0,106,97,0.35)"}` }}>{d.verdict}</span>
         {d.score_delta != null && <span className="font-mono text-[11px] text-slate-400">Δ score {d.score_delta}</span>}
       </div>
       <div className="flex flex-col gap-3 sm:flex-row">

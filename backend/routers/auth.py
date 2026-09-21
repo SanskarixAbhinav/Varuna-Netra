@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from pydantic import BaseModel
 
 from auth import (check_lockout, clear_failures, create_access_token, create_guest_token, get_current_user, hash_password,
                   public_user, record_failure, require_role, verify_password, validate_password, rate_limit,
@@ -23,6 +24,24 @@ def _client_ip(request: Request) -> str:
     return (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "unknown")).split(",")[0].strip()
 
 
+def _set_auth_cookie(response: Response, token: str, max_age: int) -> None:
+    """Set the auth cookie for both same-origin Render and separately hosted frontends.
+
+    Same-origin deployments can use Lax. If the API is called from another origin,
+    SameSite=None is required for credentialed XHR/fetch; Secure is required with it.
+    The frontend also receives the token and has a sessionStorage bearer fallback.
+    """
+    response.set_cookie(
+        "access_token",
+        token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=max_age,
+        path="/",
+    )
+
+
 @router.post("/auth/login")
 async def login(body: LoginRequest, request: Request, response: Response):
     email = body.email.lower().strip()
@@ -30,14 +49,17 @@ async def login(body: LoginRequest, request: Request, response: Response):
     ident = f"{ip}:{email}"
     await check_lockout(ident)
     user = await db.users.find_one({"email": email})
-    if not user or not verify_password(body.password, user["password_hash"]):
+    if user and not user.get("password_hash"):
+        # Google-provisioned account with no password set: say so instead of a misleading "invalid password".
+        raise HTTPException(401, "This account signs in with Google. Use 'Continue with Google', or set a password via Create account.")
+    if not user or not verify_password(body.password, user.get("password_hash")):
         await record_failure(ident)
         raise HTTPException(401, "Invalid email or password")
     if not user.get("active", True):
         raise HTTPException(403, "Account deactivated")
     await clear_failures(ident)
     token = create_access_token(user)
-    response.set_cookie("access_token", token, httponly=True, secure=True, samesite="lax", max_age=ACCESS_HOURS * 3600, path="/")
+    _set_auth_cookie(response, token, ACCESS_HOURS * 3600)
     await db.users.update_one({"id": user["id"]}, {"$set": {"last_login": datetime.now(timezone.utc)}})
     await audit("user", user["id"], "auth.login", {"email": email}, email)
     return {"access_token": token, "token_type": "bearer", "user": clean(public_user(user))}
@@ -45,27 +67,71 @@ async def login(body: LoginRequest, request: Request, response: Response):
 
 @router.post("/auth/logout")
 async def logout(response: Response, user=Depends(get_current_user)):
-    response.delete_cookie("access_token", path="/", httponly=True, secure=True, samesite="lax")
+    response.delete_cookie("access_token", path="/", httponly=True, secure=True, samesite="none")
     await audit("user", user["id"], "auth.logout", {}, user["email"])
     return {"ok": True}
 
 
 @router.get("/auth/capabilities")
 async def auth_capabilities():
-    """Public, secret-free capabilities for the standalone deployment."""
-    return {"authentication": {
-        "email_password": {"enabled": True, "signup": True, "default_role": "viewer", "password_policy": "min 10 chars, letters + numbers"},
-        "google": {"enabled": False, "configured": False, "status": "DISABLED", "provider": "Not configured"},
-        "guest": {"enabled": True, "role": "guest", "read_only": True}
-    }}
+    """Public, secret-free: which sign-in methods this deployment actually supports."""
+    from google_auth import capabilities
+    return capabilities()
+
+
+class GoogleSession(BaseModel):
+    session_id: str
+
+
+@router.post("/auth/google/session")
+async def google_session(body: GoogleSession, request: Request, response: Response):
+    """Exchange the Google session_id server-side; grant access ONLY to an existing active user (role from DB, never from the client)."""
+    from google_auth import google_status, fetch_google_identity
+    if not google_status()["enabled"]:
+        raise HTTPException(403, "Google sign-in is not enabled for this deployment")
+    ip = (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "unknown")).split(",")[0].strip()
+    ident = f"{ip}:google"
+    await check_lockout(ident)
+    try:
+        ident_data = await fetch_google_identity(body.session_id.strip())
+    except ValueError as e:
+        await record_failure(ident)
+        raise HTTPException(401, str(e))
+    email = ident_data["email"]
+    user = await db.users.find_one({"email": email})
+    if user and not user.get("active", True):
+        # Existing but disabled — Google must NOT silently reactivate.
+        await record_failure(ident)
+        await audit("user", user["id"], "auth.google_denied", {"email": email, "reason": "disabled"}, email)
+        raise HTTPException(403, "Your Varuna Netra account is disabled. Contact an administrator.")
+    if not user:
+        # Public auto-provisioning at LOWEST privilege. Role is forced server-side to viewer —
+        # never taken from the client, the form, or Google metadata. No auto-promotion, ever.
+        now = datetime.now(timezone.utc)
+        user = {"id": new_id(), "email": email, "name": ident_data.get("name") or email.split("@")[0],
+                "role": "viewer", "active": True, "auth_provider": "google", "email_verified": True,
+                "created_at": now, "first_login": now, "last_login": now, "last_login_method": "google"}
+        await db.users.insert_one(user)
+        await audit("user", user["id"], "auth.google_provisioned", {"email": email, "role": "viewer"}, email)
+    await clear_failures(ident)
+    token = create_access_token(user)
+    _set_auth_cookie(response, token, ACCESS_HOURS * 3600)
+    await db.users.update_one({"id": user["id"]}, {"$set": {"last_login": datetime.now(timezone.utc), "last_login_method": "google"}})
+    await audit("user", user["id"], "auth.login", {"email": email, "method": "google"}, email)
+    return {"access_token": token, "token_type": "bearer", "user": clean(public_user(user))}
 
 
 @router.post("/auth/guest")
 async def guest_session(request: Request, response: Response):
     """Public, server-issued READ-ONLY session (role=guest). No account, no DB user; every write is denied server-side."""
-    await rate_limit(f"guest:{_client_ip(request)}", 60, 3600)
+    try:
+        await rate_limit(f"guest:{_client_ip(request)}", 60, 3600)
+    except HTTPException:
+        raise
+    except Exception:  # noqa: BLE001 — the limiter is best-effort; a read-only guest token must not 500 because of it
+        logger.exception("guest rate limiter unavailable — issuing guest session anyway")
     token = create_guest_token()
-    response.set_cookie("access_token", token, httponly=True, secure=True, samesite="lax", max_age=GUEST_ACCESS_HOURS * 3600, path="/")
+    _set_auth_cookie(response, token, GUEST_ACCESS_HOURS * 3600)
     return {"access_token": token, "token_type": "bearer", "user": {"id": "guest", "email": None, "name": "Guest", "role": "guest", "active": True, "is_guest": True}}
 
 
@@ -83,8 +149,9 @@ async def signup(body: SignupRequest, request: Request, response: Response):
             raise HTTPException(403, "Your Varuna Netra account is disabled. Contact an administrator.")
         if existing.get("password_hash"):
             raise HTTPException(400, "An account with this e-mail already exists. Please sign in.")
+        # Google-only account signing up with a password → link it, PRESERVE the stored role (never downgrade/upgrade)
         await db.users.update_one({"id": existing["id"]}, {"$set": {"password_hash": hash_password(body.password),
-                                  "name": existing.get("name") or body.name.strip(), "organization": body.organization, "auth_provider": "password"}})
+                                  "name": existing.get("name") or body.name.strip(), "organization": body.organization, "auth_provider": "google+password"}})
         user = await db.users.find_one({"id": existing["id"]})
         await audit("user", user["id"], "auth.signup_linked", {"email": email}, email)
     else:
@@ -95,7 +162,7 @@ async def signup(body: SignupRequest, request: Request, response: Response):
         await db.users.insert_one(dict(user))
         await audit("user", user["id"], "auth.signup", {"email": email, "role": "viewer"}, email)
     token = create_access_token(user)
-    response.set_cookie("access_token", token, httponly=True, secure=True, samesite="lax", max_age=ACCESS_HOURS * 3600, path="/")
+    _set_auth_cookie(response, token, ACCESS_HOURS * 3600)
     return {"access_token": token, "token_type": "bearer", "user": clean(public_user(user))}
 
 

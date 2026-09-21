@@ -46,9 +46,9 @@ export const CsvUpload = ({ onDone }) => {
         onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
         onDrop={(e) => { e.preventDefault(); setDrag(false); pick(e.dataTransfer.files?.[0]); }}
         className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded border-2 border-dashed px-4 py-6 text-center transition-colors"
-        style={{ borderColor: drag ? "#00F0FF" : "var(--border-highlight)", background: drag ? "rgba(0,240,255,0.06)" : "rgba(17,24,39,0.5)" }}>
+        style={{ borderColor: drag ? "#006194" : "var(--border-highlight)", background: drag ? "rgba(0,97,148,0.06)" : "rgba(255,255,255,0.5)" }}>
         <input ref={inputRef} data-testid="csv-file-input" type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
-        <FileSpreadsheet size={22} color="#00F0FF" />
+        <FileSpreadsheet size={22} color="#006194" />
         <p className="text-sm text-slate-200">{file ? file.name : "Drop an AIS CSV export here or click to browse"}</p>
         <p className="font-mono text-[10px] text-slate-500">MMSI · BaseDateTime/timestamp · LAT · LON · SOG · COG · Heading · VesselName · IMO · VesselType · up to 25 MB</p>
       </div>
@@ -61,7 +61,7 @@ export const CsvUpload = ({ onDone }) => {
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" data-testid="csv-mapping">
             {preview.fields.map((k) => (
-              <label key={k} className="block"><span className="label-mono mb-0.5 block">{k}{REQUIRED.includes(k) && <span style={{ color: "#FF2A6D" }}> *</span>}</span>
+              <label key={k} className="block"><span className="label-mono mb-0.5 block">{k}{REQUIRED.includes(k) && <span style={{ color: "#ba1a1a" }}> *</span>}</span>
                 <select data-testid={`csv-map-${k}`} className={inputCls} style={bd} value={mapping[k] || ""} onChange={(e) => setMapping({ ...mapping, [k]: e.target.value })}>
                   <option value="">— skip —</option>{preview.headers.map((h) => <option key={h} value={h}>{h}</option>)}
                 </select></label>
@@ -78,7 +78,7 @@ export const CsvUpload = ({ onDone }) => {
         </div>
       )}
       {result && (
-        <div className="mt-3 rounded border p-3 font-mono text-[11px] text-slate-300 fade-up" style={{ borderColor: "rgba(16,185,129,0.4)" }} data-testid="csv-result">
+        <div className="mt-3 rounded border p-3 font-mono text-[11px] text-slate-300 fade-up" style={{ borderColor: "rgba(0,106,97,0.4)" }} data-testid="csv-result">
           rows {result.rows_total} · inserted <span className="text-emerald-300">{result.inserted}</span> · duplicates <span className="text-amber-300">{result.duplicates}</span> · flagged {result.flagged} · row errors <span className="text-rose-300">{result.row_error_count}</span> · vessels {result.vessels}
           {result.row_errors?.length > 0 && <ul className="mt-1 text-slate-500">{result.row_errors.slice(0, 5).map((e) => <li key={`${e.row}-${e.error}`}>row {e.row}: {e.error}</li>)}</ul>}
         </div>

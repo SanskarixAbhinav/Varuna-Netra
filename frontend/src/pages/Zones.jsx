@@ -68,13 +68,13 @@ export default function Zones() {
         <MapContainer center={[15, 60]} zoom={3} className="h-full w-full" worldCopyJump doubleClickZoom={!drawing}>
           <TileLayer url={OSM_URL} attribution="&copy; OpenStreetMap contributors" className="dark-tiles" {...TILE_PERF} />
           <ZonesLayer types={types} selected={selected?.code} onPick={pick} onStats={setLayerStats} />
-          {aoi?.geometry && <GeoJSON key={`aoi-${aoi.updated_at}`} data={aoi.geometry} style={{ color: "#00F0FF", weight: 2, dashArray: "10,5", fillOpacity: 0.05 }} />}
+          {aoi?.geometry && <GeoJSON key={`aoi-${aoi.updated_at}`} data={aoi.geometry} style={{ color: "#006194", weight: 2, dashArray: "10,5", fillOpacity: 0.05 }} />}
           {showIcg && icg && <GeoJSON key="icg" data={icg} style={icgStyle} onEachFeature={icgTip} />}
           <DrawAoi active={drawing} onDone={(g) => { setDrawn(g); setDrawing(false); }} onCancel={() => setDrawing(false)} />
           <FlyTo bbox={flyTo} />
         </MapContainer>
         <DrawHint active={drawing} />
-        <div className="absolute left-3 top-3 z-[1000] rounded px-3 py-2 text-[11px]" style={{ background: "rgba(10,14,23,0.85)", border: "1px solid var(--border-default)", backdropFilter: "blur(12px)" }} data-testid="zones-legend">
+        <div className="absolute left-3 top-3 z-[1000] rounded px-3 py-2 text-[11px]" style={{ background: "rgba(255,255,255,0.85)", border: "1px solid var(--border-default)", backdropFilter: "blur(12px)" }} data-testid="zones-legend">
           <div className="mb-1 flex items-center gap-1 label-mono"><Layers size={10} /> layers in view</div>
           {Object.entries(TYPE_COLOR).map(([k, c]) => (
             <label key={k} className="flex items-center gap-2"><input type="checkbox" data-testid={`zone-type-toggle-${k}`} checked={types.includes(k)} onChange={(e) => setTypes(e.target.checked ? [...types, k] : types.filter((t) => t !== k))} /><span className="h-2.5 w-4 border" style={{ borderColor: c, background: `${c}33` }} /> {TYPE_LABEL[k]}</label>))}
@@ -107,14 +107,14 @@ export default function Zones() {
         <ZoneRules zones={cat?.zones || []} />
         <IcgDistricts onChanged={loadIcg} />
         {admin && (
-          <div className="mt-5 rounded border p-4" style={{ borderColor: "rgba(0,240,255,0.35)", background: "rgba(0,240,255,0.04)" }} data-testid="zone-import-form">
-            <div className="mb-2 flex items-center gap-2"><Globe size={14} color="#00F0FF" /><h2 className="font-display font-semibold">Import reference boundaries</h2></div>
+          <div className="mt-5 rounded border p-4" style={{ borderColor: "rgba(0,97,148,0.35)", background: "rgba(0,97,148,0.04)" }} data-testid="zone-import-form">
+            <div className="mb-2 flex items-center gap-2"><Globe size={14} color="#006194" /><h2 className="font-display font-semibold">Import reference boundaries</h2></div>
             <p className="mb-2 text-[11px] text-slate-400">Marine Regions Maritime Boundaries v12 (CC-BY 4.0) via WFS — validated, repaired, simplified, stored with a 2dsphere index. Use <span className="font-mono text-cyan-300">ALL</span> for the whole world or ISO3 codes.</p>
             <input data-testid="zone-import-iso-input" className={inputCls} style={bd} value={iso} onChange={(e) => setIso(e.target.value)} placeholder="ALL or ISO3 codes, comma separated" />
             <div className="mt-2 flex flex-wrap items-center gap-3 font-mono text-[10px]" data-testid="zone-import-layers">
               {[["eez", "EEZ 200 NM"], ["eez_24nm", "Contiguous 24 NM"], ["eez_12nm", "Territorial 12 NM"]].map(([k, l]) => (
                 <label key={k} className="flex items-center gap-1 text-slate-300"><input type="checkbox" data-testid={`zone-import-layer-${k}`} checked={importLayers.includes(k)} onChange={(e) => setImportLayers(e.target.checked ? [...importLayers, k] : importLayers.filter((x) => x !== k))} /> {l}</label>))}
-              <button data-testid="zone-import-india-preset" onClick={() => { setIso("IND"); setImportLayers(["eez", "eez_24nm", "eez_12nm"]); }} className="rounded border px-2 py-0.5 uppercase tracking-wider text-amber-300" style={{ borderColor: "rgba(255,183,3,0.5)" }}>India · all 3 zones</button>
+              <button data-testid="zone-import-india-preset" onClick={() => { setIso("IND"); setImportLayers(["eez", "eez_24nm", "eez_12nm"]); }} className="rounded border px-2 py-0.5 uppercase tracking-wider text-amber-300" style={{ borderColor: "rgba(178,106,0,0.5)" }}>India · all 3 zones</button>
             </div>
             <div className="mt-2 flex items-center gap-2">
               <button data-testid="btn-import-eez" disabled={!!importing} onClick={importZones} className="inline-flex items-center gap-1.5 rounded bg-cyan-400 px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-950 hover:bg-cyan-300 disabled:opacity-50"><Globe size={12} /> {importing ? "Importing…" : "Import from Marine Regions"}</button>
@@ -124,7 +124,7 @@ export default function Zones() {
         )}
         {admin && (
           <div className="mt-5 rounded border p-4" style={{ borderColor: "var(--border-default)" }} data-testid="zone-create-form">
-            <div className="mb-3 flex items-center gap-2"><MapIcon size={14} color="#00F0FF" /><h2 className="font-display font-semibold">Add USER-DEFINED zone</h2></div>
+            <div className="mb-3 flex items-center gap-2"><MapIcon size={14} color="#006194" /><h2 className="font-display font-semibold">Add USER-DEFINED zone</h2></div>
             <div className="grid grid-cols-2 gap-2">
               <input data-testid="zone-code-input" placeholder="code e.g. NOR-PS-OSL" className={inputCls} style={bd} value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} />
               <select data-testid="zone-type-select" className={inputCls} style={bd} value={f.zone_type} onChange={(e) => setF({ ...f, zone_type: e.target.value })}>{Object.keys(TYPE_COLOR).map((t) => <option key={t} value={t}>{t}</option>)}</select>
@@ -135,7 +135,7 @@ export default function Zones() {
             </div>
             <div className="mt-3 flex items-center gap-2">
               <button data-testid="btn-create-zone" disabled={busy} onClick={create} className="inline-flex items-center gap-1.5 rounded bg-cyan-400 px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-950 hover:bg-cyan-300 disabled:opacity-50"><Plus size={12} /> Create zone</button>
-              <button data-testid="btn-resolve-all" onClick={resolveAll} className="inline-flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-slate-300 hover:text-white" style={bd}><RefreshCw size={12} /> Re-resolve all cases</button>
+              <button data-testid="btn-resolve-all" onClick={resolveAll} className="inline-flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-slate-300 hover:text-on-surface" style={bd}><RefreshCw size={12} /> Re-resolve all cases</button>
             </div>
           </div>
         )}

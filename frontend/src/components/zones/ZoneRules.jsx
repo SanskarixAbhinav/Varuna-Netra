@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 
 const inputCls = "w-full rounded border bg-slate-900/60 px-2.5 py-1.5 font-mono text-xs text-slate-100 outline-none focus:border-cyan-400/60";
 const bd = { borderColor: "var(--border-highlight)" };
-const SEV = { high: "#FF2A6D", medium: "#FFB703", low: "#94A3B8" };
+const SEV = { high: "#ba1a1a", medium: "#b26a00", low: "#707881" };
 const empty = { name: "", zone_code: "", min_area_km2: "", min_confidence: "", severity: "high", primary_only: false, note: "" };
 
 export const ZoneRules = ({ zones }) => {
@@ -36,8 +36,8 @@ export const ZoneRules = ({ zones }) => {
   };
 
   return (
-    <div className="mt-5 rounded border p-4" style={{ borderColor: "rgba(255,107,0,0.4)", background: "rgba(255,107,0,0.04)" }} data-testid="zone-rules">
-      <div className="mb-2 flex items-center gap-2"><BellRing size={14} color="#FF6B00" /><h2 className="font-display font-semibold">Zone alert rules</h2><span className="ml-auto font-mono text-[10px] text-slate-500">{activeRules} active</span></div>
+    <div className="mt-5 rounded border p-4" style={{ borderColor: "rgba(194,65,12,0.4)", background: "rgba(194,65,12,0.04)" }} data-testid="zone-rules">
+      <div className="mb-2 flex items-center gap-2"><BellRing size={14} color="#c2410c" /><h2 className="font-display font-semibold">Zone alert rules</h2><span className="ml-auto font-mono text-[10px] text-slate-500">{activeRules} active</span></div>
       <p className="mb-3 text-[11px] text-slate-400">Any spill inside the chosen zone raises an alert (and emails supervisors) when it meets the optional thresholds. Evaluated when a case opens and after each correlation run.</p>
       <div className="space-y-2" data-testid="zone-rules-list">
         {rules.map((r) => (
@@ -70,8 +70,8 @@ export const ZoneRules = ({ zones }) => {
           <label className="flex items-center gap-2 font-mono text-[11px] text-slate-300"><input data-testid="rule-primary-only-toggle" type="checkbox" checked={f.primary_only} onChange={(e) => setF({ ...f, primary_only: e.target.checked })} /> primary jurisdiction only</label>
           <input data-testid="rule-note-input" placeholder="note shown in the alert (optional)" className={`${inputCls} col-span-2`} style={bd} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
           <div className="col-span-2 flex items-center gap-2">
-            <button data-testid="btn-create-rule" disabled={busy || f.name.trim().length < 2 || !f.zone_code} onClick={create} className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-950 disabled:opacity-50" style={{ background: "#FF6B00" }}><Plus size={12} /> Create rule</button>
-            <button data-testid="btn-evaluate-rules" disabled={busy} onClick={evaluate} className="inline-flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-slate-300 hover:text-white disabled:opacity-50" style={bd}><Play size={12} /> Evaluate existing cases</button>
+            <button data-testid="btn-create-rule" disabled={busy || f.name.trim().length < 2 || !f.zone_code} onClick={create} className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-950 disabled:opacity-50" style={{ background: "#c2410c" }}><Plus size={12} /> Create rule</button>
+            <button data-testid="btn-evaluate-rules" disabled={busy} onClick={evaluate} className="inline-flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-slate-300 hover:text-on-surface disabled:opacity-50" style={bd}><Play size={12} /> Evaluate existing cases</button>
           </div>
         </div>
       )}

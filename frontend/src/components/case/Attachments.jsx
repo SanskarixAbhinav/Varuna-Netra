@@ -17,8 +17,8 @@ const Thumb = ({ att }) => {
     api.get(`/attachments/${att.id}/download`, { responseType: "blob" }).then((r) => { u = URL.createObjectURL(r.data); setUrl(u); }).catch(() => {});
     return () => { if (u) URL.revokeObjectURL(u); };
   }, [att.id, att.is_image]);
-  if (!att.is_image) return <div className="grid h-20 w-full place-items-center rounded bg-slate-900/60"><FileText size={22} color="#94A3B8" /></div>;
-  return url ? <img src={url} alt={att.caption || att.original_filename} className="h-20 w-full rounded object-cover" data-testid={`attachment-thumb-${att.id}`} /> : <div className="grid h-20 w-full place-items-center rounded bg-slate-900/60"><ImageIcon size={22} color="#94A3B8" /></div>;
+  if (!att.is_image) return <div className="grid h-20 w-full place-items-center rounded bg-slate-900/60"><FileText size={22} color="#707881" /></div>;
+  return url ? <img src={url} alt={att.caption || att.original_filename} className="h-20 w-full rounded object-cover" data-testid={`attachment-thumb-${att.id}`} /> : <div className="grid h-20 w-full place-items-center rounded bg-slate-900/60"><ImageIcon size={22} color="#707881" /></div>;
 };
 
 export const Attachments = ({ caseId, onChanged }) => {
@@ -55,8 +55,8 @@ export const Attachments = ({ caseId, onChanged }) => {
 
   return (
     <div className="p-4 space-y-4" data-testid="attachments-panel">
-      <div className="rounded border p-3" style={{ borderColor: "rgba(255,183,3,0.4)", background: "rgba(255,183,3,0.04)" }} data-testid="attachment-upload-form">
-        <div className="mb-2 flex items-center gap-2"><UploadCloud size={14} color="#FFB703" /><span className="font-display text-sm font-semibold">Attach source imagery / evidence file</span></div>
+      <div className="rounded border p-3" style={{ borderColor: "rgba(178,106,0,0.4)", background: "rgba(178,106,0,0.04)" }} data-testid="attachment-upload-form">
+        <div className="mb-2 flex items-center gap-2"><UploadCloud size={14} color="#b26a00" /><span className="font-display text-sm font-semibold">Attach source imagery / evidence file</span></div>
         <p className="mb-2 text-[11px] text-slate-400">PNG, JPG, WebP, GeoTIFF, PDF, CSV, GeoJSON up to 50 MB · stored in object storage · images embedded in the evidence PDF and listed on the timeline.</p>
         <input data-testid="attachment-file-input" type="file" accept=".png,.jpg,.jpeg,.webp,.tif,.tiff,.pdf,.csv,.txt,.json,.geojson" onChange={(e) => setFile(e.target.files?.[0] || null)} className="block w-full text-xs text-slate-300 file:mr-3 file:rounded file:border-0 file:bg-slate-800 file:px-3 file:py-1.5 file:font-mono file:text-[11px] file:text-cyan-300" />
         <div className="mt-2 grid grid-cols-[1fr_140px] gap-2">
@@ -64,7 +64,7 @@ export const Attachments = ({ caseId, onChanged }) => {
           <select data-testid="attachment-kind-select" className={inputCls} style={bd} value={kind} onChange={(e) => setKind(e.target.value)}>{KINDS.map((k) => <option key={k} value={k}>{k}</option>)}</select>
         </div>
         <div className="mt-2 flex items-center gap-3">
-          <button data-testid="btn-upload-attachment" disabled={!file || progress !== null} onClick={upload} className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-950 disabled:opacity-50" style={{ background: "#FFB703" }}><Paperclip size={12} /> {progress !== null ? `Uploading ${progress}%` : "Upload"}</button>
+          <button data-testid="btn-upload-attachment" disabled={!file || progress !== null} onClick={upload} className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-950 disabled:opacity-50" style={{ background: "#b26a00" }}><Paperclip size={12} /> {progress !== null ? `Uploading ${progress}%` : "Upload"}</button>
           {progress !== null && <div className="h-1.5 flex-1 rounded bg-slate-800" data-testid="attachment-progress"><div className="h-1.5 rounded bg-amber-400 transition-[width]" style={{ width: `${progress}%` }} /></div>}
         </div>
       </div>

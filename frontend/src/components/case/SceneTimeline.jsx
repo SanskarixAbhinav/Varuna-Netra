@@ -3,7 +3,7 @@ import { Clock3, Satellite } from "lucide-react";
 import { api, apiError, fmtTime } from "@/lib/api";
 
 const Pass = ({ p, active, onClick }) => (
-  <button data-testid={`scene-pass-${p.stac_id}`} onClick={onClick} className={`shrink-0 rounded border px-2 py-1 text-left font-mono text-[10px] ${active ? "border-cyan-400 text-cyan-300" : "border-slate-700 text-slate-400 hover:text-slate-100"}`}>
+  <button data-testid={`scene-pass-${p.stac_id}`} onClick={onClick} className={`shrink-0 rounded border px-2 py-1 text-left font-mono text-[10px] ${active ? "border-cyan-400 text-cyan-300" : "border-slate-700 text-slate-400 hover:text-on-surface"}`}>
     <div>{fmtTime(p.datetime)}</div>
     <div className={p.offset_hours === 0 ? "text-amber-300" : ""}>{p.offset_hours > 0 ? "+" : ""}{p.offset_hours} h{p.is_case_scene ? " · case scene" : ""}</div>
   </button>
@@ -33,7 +33,7 @@ export const SceneTimeline = ({ caseId }) => {
   return (
     <div className="p-4" data-testid="scene-timeline">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <Satellite size={13} color="#00F0FF" /><span className="font-display text-sm font-semibold">Sentinel-1 pass timeline</span>
+        <Satellite size={13} color="#006194" /><span className="font-display text-sm font-semibold">Sentinel-1 pass timeline</span>
         <span className="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-emerald-300" style={{ border: "1px solid currentColor" }}>REAL SENTINEL-1 · archive acquisitions</span>
         <select data-testid="scene-timeline-window" value={days} onChange={(e) => setDays(+e.target.value)} className="ml-auto rounded border bg-slate-900/60 px-2 py-1 font-mono text-[10px] text-slate-200" style={{ borderColor: "var(--border-highlight)" }}>
           {[14, 30, 60, 120, 365].map((d) => <option key={d} value={d}>± {d} days</option>)}

@@ -6,7 +6,7 @@ import { api, apiError, fmtTime } from "@/lib/api";
 import { CaseMap } from "@/components/case/CaseMap";
 import { StatusBadge } from "@/components/StatusBadge";
 
-const SIDE = { a: "#00F0FF", b: "#FF2A6D" };
+const SIDE = { a: "#006194", b: "#ba1a1a" };
 const sel = "rounded border bg-slate-900/60 px-2 py-1.5 font-mono text-[11px] text-slate-200 outline-none";
 
 const tag = (geo, side) => ({ ...geo, features: (geo?.features || []).map((f) => ({ ...f, properties: { ...f.properties, side } })) });
@@ -72,8 +72,8 @@ export default function Compare() {
             <p className="mt-1 text-[11px] text-slate-500" data-testid="compare-disclaimer">{data.disclaimer}</p>
             <div className="mt-3 space-y-2" data-testid="shared-vessels-list">
               {data.shared_vessels.map((v) => (
-                <button key={v.mmsi} data-testid={`shared-vessel-${v.mmsi}`} onClick={() => nav(`/vessels/${v.mmsi}`)} className="block w-full rounded border p-3 text-left text-xs hover:border-amber-400/60" style={{ borderColor: "rgba(255,183,3,0.4)", background: "rgba(255,183,3,0.05)" }}>
-                  <div className="flex items-center gap-2"><Ship size={12} color="#FFB703" /><span className="font-display font-semibold">{v.vessel_name || "UNKNOWN"}</span><span className="font-mono text-slate-400">{v.mmsi}</span><span className="ml-auto font-mono text-[10px] text-slate-500">{v.vessel_type || ""}</span></div>
+                <button key={v.mmsi} data-testid={`shared-vessel-${v.mmsi}`} onClick={() => nav(`/vessels/${v.mmsi}`)} className="block w-full rounded border p-3 text-left text-xs hover:border-amber-400/60" style={{ borderColor: "rgba(178,106,0,0.4)", background: "rgba(178,106,0,0.05)" }}>
+                  <div className="flex items-center gap-2"><Ship size={12} color="#b26a00" /><span className="font-display font-semibold">{v.vessel_name || "UNKNOWN"}</span><span className="font-mono text-slate-400">{v.mmsi}</span><span className="ml-auto font-mono text-[10px] text-slate-500">{v.vessel_type || ""}</span></div>
                   <div className="mt-1.5 grid grid-cols-2 gap-2 font-mono text-[10px]">
                     {["a", "b"].map((k) => <div key={k} className="flex items-center gap-1.5" style={{ color: SIDE[k] }}>{data[k].case.case_number}: #{v[k].rank} · {v[k].score.toFixed(2)} <StatusBadge status={v[k].status} /></div>)}
                   </div>
@@ -99,7 +99,7 @@ export default function Compare() {
 
 const SideBadge = ({ k, c, inline }) => (
   <div className={inline ? "" : "absolute left-3 top-3 z-[1000]"} data-testid={`compare-badge-${k}`}>
-    <div className="rounded px-2.5 py-1.5 text-[11px]" style={{ background: "rgba(10,14,23,0.85)", border: `1px solid ${SIDE[k]}`, backdropFilter: "blur(12px)" }}>
+    <div className="rounded px-2.5 py-1.5 text-[11px]" style={{ background: "rgba(255,255,255,0.85)", border: `1px solid ${SIDE[k]}`, backdropFilter: "blur(12px)" }}>
       <span className="font-mono uppercase tracking-wider" style={{ color: SIDE[k] }}>{k}</span> <span className="font-display font-semibold">{c.case_number}</span>
       <span className="ml-2 text-slate-400">{fmtTime(c.acquisition_time)} · {c.primary_jurisdiction?.code || "—"}</span>
     </div>

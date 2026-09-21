@@ -26,7 +26,7 @@ export const SceneWatches = ({ bbox, collection }) => {
   const remove = async (w) => { try { await api.delete(`/scene-watches/${w.id}`); load(); } catch (e) { toast.error(apiError(e)); } };
   return (
     <div className="border-t p-4" style={{ borderColor: "var(--border-default)" }} data-testid="scene-watches">
-      <div className="mb-1 flex items-center gap-2"><Radar size={13} color="#FFB703" /><span className="font-display text-sm font-semibold">Auto Scene Watch</span><span className="ml-auto font-mono text-[10px] text-slate-500">cron every 3 h</span></div>
+      <div className="mb-1 flex items-center gap-2"><Radar size={13} color="#b26a00" /><span className="font-display text-sm font-semibold">Auto Scene Watch</span><span className="ml-auto font-mono text-[10px] text-slate-500">cron every 3 h</span></div>
       <p className="mb-2 text-[11px] text-slate-400">Saved regions are polled for new passes; new scenes are registered, optionally run through the experimental detector, and raise a <span className="font-mono">new_scene</span> alert.</p>
       <div className="space-y-1.5" data-testid="scene-watches-list">
         {rows.map((w) => (
@@ -42,7 +42,7 @@ export const SceneWatches = ({ bbox, collection }) => {
         <div className="mt-2 flex items-center gap-2">
           <input data-testid="scene-watch-name-input" className={inputCls} style={bd} value={name} onChange={(e) => setName(e.target.value)} placeholder="watch name for current map view" />
           <label className="flex shrink-0 items-center gap-1 font-mono text-[10px] text-slate-300"><input type="checkbox" data-testid="scene-watch-auto-toggle" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> detect</label>
-          <button data-testid="btn-create-scene-watch" disabled={busy || name.trim().length < 2 || !bbox} onClick={create} className="shrink-0 rounded px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-slate-950 disabled:opacity-50" style={{ background: "#FFB703" }}>Watch this view</button>
+          <button data-testid="btn-create-scene-watch" disabled={busy || name.trim().length < 2 || !bbox} onClick={create} className="shrink-0 rounded px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-slate-950 disabled:opacity-50" style={{ background: "#b26a00" }}>Watch this view</button>
         </div>
       )}
     </div>

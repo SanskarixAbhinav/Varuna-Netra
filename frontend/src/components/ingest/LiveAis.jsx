@@ -28,12 +28,12 @@ export const LiveAis = ({ onChanged }) => {
     catch (e) { toast.error(apiError(e)); } finally { setBusy(false); }
   };
   if (!s) return null;
-  const tone = s.state === "LIVE" ? "#10B981" : ["CONNECTED", "CONNECTING", "RECONNECTING", "STANDBY", "STALE"].includes(s.state) ? "#FFB703" : "#FF2A6D";
+  const tone = s.state === "LIVE" ? "#006a61" : ["CONNECTED", "CONNECTING", "RECONNECTING", "STANDBY", "STALE"].includes(s.state) ? "#b26a00" : "#ba1a1a";
   const label = s.state === "LIVE" ? `LIVE AIS · ${s.messages_per_min} msg/min` : s.state === "CONNECTED" ? "CONNECTED — NO REGIONAL COVERAGE" : s.state === "NOT_CONFIGURED" ? "NOT CONFIGURED — API key not configured" : s.state === "STANDBY" ? "STANDBY" : s.state === "KEY_CONFLICT" ? "KEY CONFLICT" : s.state === "CONNECTING" || s.state === "RECONNECTING" ? s.state.toLowerCase() : `AIS OFFLINE — ${s.reason}`;
   const showPrompt = cov?.prompt && !dismissed;
   return (
     <div className="panel p-5 fade-up" data-testid="live-ais-panel">
-      <div className="mb-2 flex items-center gap-2"><Radio size={16} color="#00F0FF" /><h2 className="font-display text-lg font-semibold">Live AIS feed (AISStream)</h2>
+      <div className="mb-2 flex items-center gap-2"><Radio size={16} color="#006194" /><h2 className="font-display text-lg font-semibold">Live AIS feed (AISStream)</h2>
         <span data-testid="live-ais-badge" className="ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider" style={{ color: tone, border: `1px solid ${tone}66` }}>{s.state === "LIVE" ? <Wifi size={10} /> : <WifiOff size={10} />} {label}</span></div>
       {(s.state === "STANDBY" || s.state === "KEY_CONFLICT") && <p className="mb-2 rounded border border-amber-400/40 bg-amber-400/5 px-3 py-2 text-xs text-amber-200" data-testid="live-ais-reason">{s.reason}</p>}
       {showPrompt && (
@@ -59,7 +59,7 @@ export const LiveAis = ({ onChanged }) => {
       {hasRole(user, "supervisor") && (
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <span className="label-mono mr-1">Monitor region</span>
-          {Object.entries(REGION_LABELS).map(([k, l]) => <button key={k} data-testid={`live-ais-region-${k}`} disabled={busy} onClick={() => setRegion(k)} className="rounded border px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-slate-300 hover:text-white disabled:opacity-50" style={bd}>{l}</button>)}
+          {Object.entries(REGION_LABELS).map(([k, l]) => <button key={k} data-testid={`live-ais-region-${k}`} disabled={busy} onClick={() => setRegion(k)} className="rounded border px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-slate-300 hover:text-on-surface disabled:opacity-50" style={bd}>{l}</button>)}
           <select data-testid="live-ais-region-global" disabled={busy} defaultValue="" onChange={(e) => { if (e.target.value) setRegion(e.target.value); e.target.value = ""; }} className="rounded border bg-slate-900/60 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-slate-300" style={bd}>
             <option value="">🌐 World region…</option>{Object.entries(GLOBAL_REGIONS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>

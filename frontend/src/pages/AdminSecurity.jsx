@@ -3,10 +3,10 @@ import { ShieldAlert } from "lucide-react";
 import { api, fmtTime } from "@/lib/api";
 
 const STATE_STYLE = {
-  PASS: { color: "#10B981", bg: "rgba(16,185,129,0.1)", bd: "rgba(16,185,129,0.35)" },
-  WARNING: { color: "#FFB703", bg: "rgba(255,183,3,0.1)", bd: "rgba(255,183,3,0.35)" },
-  FAIL: { color: "#FF2A6D", bg: "rgba(255,42,109,0.1)", bd: "rgba(255,42,109,0.35)" },
-  "NOT CONFIGURED": { color: "#94A3B8", bg: "rgba(148,163,184,0.1)", bd: "rgba(148,163,184,0.3)" },
+  PASS: { color: "#006a61", bg: "rgba(0,106,97,0.1)", bd: "rgba(0,106,97,0.35)" },
+  WARNING: { color: "#b26a00", bg: "rgba(178,106,0,0.1)", bd: "rgba(178,106,0,0.35)" },
+  FAIL: { color: "#ba1a1a", bg: "rgba(186,26,26,0.1)", bd: "rgba(186,26,26,0.35)" },
+  "NOT CONFIGURED": { color: "#707881", bg: "rgba(112,120,129,0.1)", bd: "rgba(112,120,129,0.3)" },
 };
 
 export default function AdminSecurity() {
@@ -43,7 +43,7 @@ export default function AdminSecurity() {
       {d && (
         <div className="panel overflow-hidden fade-up" data-testid="security-audit">
           <div className="flex items-center gap-2 border-b px-4 py-3" style={{ borderColor: "var(--border-default)" }}>
-            <ShieldAlert size={15} color="#FFB703" /><h2 className="font-display font-semibold">Recent audit events</h2>
+            <ShieldAlert size={15} color="#b26a00" /><h2 className="font-display font-semibold">Recent audit events</h2>
           </div>
           <table className="w-full text-xs">
             <thead><tr className="label-mono text-left">{["Time", "Actor", "Action", "Entity"].map((h) => <th key={h} className="px-4 py-2 font-normal">{h}</th>)}</tr></thead>

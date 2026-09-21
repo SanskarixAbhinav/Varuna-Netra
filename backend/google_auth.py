@@ -9,7 +9,7 @@ import httpx
 from livemode import APP_ENV, DEMO_MODE
 
 logger = logging.getLogger("google_auth")
-SESSION_DATA_URL = os.environ.get("GOOGLE_SESSION_DATA_URL", "")
+SESSION_DATA_URL = os.environ.get("GOOGLE_OAUTH_SESSION_URL", "")
 UNAUTHORIZED_MSG = "Your Google account is not authorized for Varuna Netra. Contact an administrator for access."
 
 
@@ -39,8 +39,6 @@ def capabilities() -> dict:
 
 async def fetch_google_identity(session_id: str) -> dict:
     """Server-side exchange of the one-time session_id — the frontend never talks to the auth provider's data endpoint."""
-    if not SESSION_DATA_URL:
-        raise ValueError("Google OAuth session data endpoint not configured.")
     async with httpx.AsyncClient(timeout=10) as c:
         r = await c.get(SESSION_DATA_URL, headers={"X-Session-ID": session_id})
     if r.status_code != 200:

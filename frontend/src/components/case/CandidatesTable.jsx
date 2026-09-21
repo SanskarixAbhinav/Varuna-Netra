@@ -27,8 +27,8 @@ export const CandidatesTable = ({ candidates, selected, onSelect }) => {
                   <span className="font-display font-semibold">{c.vessel_name || "UNKNOWN"}</span>
                   <span className="font-mono text-[10px] text-slate-400">MMSI {c.mmsi}{c.imo ? ` · IMO ${c.imo}` : ""}{c.vessel_type ? ` · ${c.vessel_type}` : ""}</span>
                   <Link to={`/vessels/${c.mmsi}`} data-testid={`vessel-history-link-${c.mmsi}`} onClick={(e) => e.stopPropagation()} title="Vessel history" className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[10px] text-cyan-300 hover:bg-cyan-400/10"><History size={11} /> history</Link>
-                  {c.ais_flags?.length > 0 && <AlertTriangle size={12} color="#FFB703" title={c.ais_flags.join(", ")} />}
-                  {c.watchlist && <span data-testid={`watchlist-badge-${c.mmsi}`} title={c.watchlist.reason} className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider" style={{ color: "#FF2A6D", background: "rgba(255,42,109,0.12)", border: "1px solid rgba(255,42,109,0.5)" }}><Eye size={10} /> watchlist</span>}
+                  {c.ais_flags?.length > 0 && <AlertTriangle size={12} color="#b26a00" title={c.ais_flags.join(", ")} />}
+                  {c.watchlist && <span data-testid={`watchlist-badge-${c.mmsi}`} title={c.watchlist.reason} className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider" style={{ color: "#ba1a1a", background: "rgba(186,26,26,0.12)", border: "1px solid rgba(186,26,26,0.5)" }}><Eye size={10} /> watchlist</span>}
                 </div>
                 <div className="mt-1.5 flex items-center gap-3">
                   <ScoreBar value={c.score} color={rankColor(c.rank)} testId={`candidate-score-bar-${c.mmsi}`} />
@@ -36,13 +36,13 @@ export const CandidatesTable = ({ candidates, selected, onSelect }) => {
                 </div>
               </div>
               <StatusBadge status={c.status} testId={`candidate-status-${c.mmsi}`} />
-              {c.zone && <span data-testid={`candidate-zone-${c.mmsi}`} title={`${c.zone.name} · ${c.zone.authority}`} className="ml-1 rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider" style={{ color: "#38BDF8", border: "1px solid rgba(56,189,248,0.5)" }}>{c.zone.code} · {c.zone.zone_label}</span>}
-              <button className="inline-flex items-center gap-1 rounded border px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-cyan-300" style={{ borderColor: "rgba(0,240,255,0.4)" }} data-testid={`score-breakdown-toggle-${c.mmsi}`}><HelpCircle size={12} /> Why this vessel? {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>
+              {c.zone && <span data-testid={`candidate-zone-${c.mmsi}`} title={`${c.zone.name} · ${c.zone.authority}`} className="ml-1 rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider" style={{ color: "#007bb9", border: "1px solid rgba(0,123,185,0.5)" }}>{c.zone.code} · {c.zone.zone_label}</span>}
+              <button className="inline-flex items-center gap-1 rounded border px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-cyan-300" style={{ borderColor: "rgba(0,97,148,0.4)" }} data-testid={`score-breakdown-toggle-${c.mmsi}`}><HelpCircle size={12} /> Why this vessel? {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>
             </div>
             {isOpen && (
               <div className="px-4 pb-4 fade-up" data-testid={`score-breakdown-${c.mmsi}`}>
                 <div className="mb-2 flex flex-wrap items-center gap-2 font-mono text-[11px]" data-testid={`why-summary-${c.mmsi}`}>
-                  <span className="rounded px-1.5 py-0.5 text-amber-300" style={{ border: "1px solid rgba(255,183,3,0.5)" }}>CANDIDATE VESSEL · investigation priority #{c.rank}</span>
+                  <span className="rounded px-1.5 py-0.5 text-amber-300" style={{ border: "1px solid rgba(178,106,0,0.5)" }}>CANDIDATE VESSEL · investigation priority #{c.rank}</span>
                   <span className="text-slate-200">Correlation score <b>{Math.round(c.score * 100)}/100</b></span>
                   <span className="text-slate-500">= Σ weight × factor ÷ Σ weights ({FACTORS.map((k) => `${k} ${c.factors[k]?.weight ?? 0}`).join(" · ")})</span>
                 </div>
@@ -57,7 +57,7 @@ export const CandidatesTable = ({ candidates, selected, onSelect }) => {
                           <span className="label-mono">{FACTOR_LABEL[k] || k} <span className="text-slate-600">w={f.weight}</span></span>
                           <span className="font-mono text-xs" data-testid={`factor-points-${k}-${c.mmsi}`}>{Math.round(f.contribution * 100)}/{Math.round((f.weight / tw) * 100)} <span className="text-slate-500">({f.score.toFixed(2)})</span></span>
                         </div>
-                        <ScoreBar value={f.score} color="#00F0FF" />
+                        <ScoreBar value={f.score} color="#006194" />
                         <p className="mt-1.5 text-[11px] leading-snug text-slate-400">{f.detail}</p>
                       </div>
                     );

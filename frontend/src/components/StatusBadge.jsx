@@ -15,15 +15,15 @@ export const StatusBadge = ({ status, testId }) => {
 };
 
 export const BandBadge = ({ band }) => {
-  const map = { high: "#10B981", medium: "#FFB703", low: "#94A3B8" };
+  const map = { high: "#006a61", medium: "#b26a00", low: "#707881" };
   return (
-    <span data-testid={`band-badge-${band}`} className="font-mono text-[10px] uppercase tracking-wider" style={{ color: map[band] || "#94A3B8" }}>
+    <span data-testid={`band-badge-${band}`} className="font-mono text-[10px] uppercase tracking-wider" style={{ color: map[band] || "#707881" }}>
       {band || "—"}
     </span>
   );
 };
 
-export const ScoreBar = ({ value, color = "#00F0FF", testId }) => (
+export const ScoreBar = ({ value, color = "#006194", testId }) => (
   <div data-testid={testId} className="h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
     <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${Math.round((value || 0) * 100)}%`, background: color }} />
   </div>

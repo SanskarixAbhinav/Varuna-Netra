@@ -29,7 +29,7 @@ export function AiAssistant({ caseId }) {
 
   return (
     <div className="flex h-[520px] flex-col" data-testid="ai-assistant">
-      <div className="mb-2 flex items-center gap-2"><Sparkles size={15} color="#00F0FF" /><h3 className="font-display text-sm font-semibold">Case assistant</h3>
+      <div className="mb-2 flex items-center gap-2"><Sparkles size={15} color="#006194" /><h3 className="font-display text-sm font-semibold">Case assistant</h3>
         <span className="ml-auto font-mono text-[10px] text-slate-500">grounded in stored case evidence only</span></div>
       <div className="flex-1 space-y-3 overflow-y-auto rounded-md border p-3" style={{ borderColor: "var(--border-default)" }} data-testid="assistant-messages">
         {msgs.length === 0 && (
@@ -39,7 +39,7 @@ export function AiAssistant({ caseId }) {
           </div>
         )}
         {msgs.map((m, i) => (
-          <div key={i} className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${m.role === "user" ? "ml-auto bg-cyan-400/15 text-cyan-100" : "bg-slate-800/60 text-slate-200"}`} style={m.error ? { color: "#FF6B8A" } : {}}>{m.text}</div>
+          <div key={i} className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${m.role === "user" ? "ml-auto bg-cyan-400/15 text-cyan-100" : "bg-slate-800/60 text-slate-200"}`} style={m.error ? { color: "#ba1a1a" } : {}}>{m.text}</div>
         ))}
         {busy && <div className="max-w-[85%] rounded-lg bg-slate-800/60 px-3 py-2 text-sm text-slate-400" data-testid="assistant-thinking">Thinking…</div>}
         <div ref={endRef} />

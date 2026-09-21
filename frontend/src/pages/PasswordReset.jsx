@@ -9,8 +9,8 @@ const bd = { borderColor: "var(--border-highlight)" };
 
 const Shell = ({ title, sub, children, testId }) => (
   <div className="grid h-screen place-items-center p-6 grid-bg" style={{ background: "var(--bg-primary)" }} data-testid={testId}>
-    <div className="panel w-full max-w-md p-8 fade-up">
-      <div className="mb-5 flex items-center gap-2.5"><span className="grid h-8 w-8 place-items-center rounded-md" style={{ background: "rgba(0,240,255,0.12)", border: "1px solid rgba(0,240,255,0.4)" }}><Radar size={16} color="#00F0FF" /></span><span className="font-display text-lg font-bold">Sentinel<span style={{ color: "#00F0FF" }}>Mar</span></span></div>
+    <div className="w-full max-w-md rounded-xl bg-surface-container-lowest p-8 shadow-[0_8px_32px_rgba(25,28,30,0.08)] fade-up">
+      <div className="mb-5 flex items-center gap-2.5"><span className="grid h-8 w-8 place-items-center rounded-md" style={{ background: "rgba(0,97,148,0.12)", border: "1px solid rgba(0,97,148,0.4)" }}><Radar size={16} color="#006194" /></span><span className="font-display text-lg font-bold">VARUNA <span style={{ color: "#006194" }}>NETRA</span></span></div>
       <h1 className="font-display text-2xl font-bold tracking-tight">{title}</h1>
       <p className="mt-1 text-xs text-slate-400">{sub}</p>
       {children}
@@ -31,7 +31,7 @@ export function ForgotPassword() {
   return (
     <Shell title="Reset your password" sub="Enter your account email. A single-use reset link (valid 60 minutes) will be issued." testId="forgot-password-page">
       {done ? (
-        <div className="mt-5 rounded border p-4 text-sm" style={{ borderColor: "rgba(16,185,129,0.4)", background: "rgba(16,185,129,0.08)" }} data-testid="forgot-password-done">
+        <div className="mt-5 rounded border p-4 text-sm" style={{ borderColor: "rgba(0,106,97,0.4)", background: "rgba(0,106,97,0.08)" }} data-testid="forgot-password-done">
           <div className="flex items-center gap-2 text-emerald-300"><MailCheck size={16} /> Request received</div>
           <p className="mt-2 text-xs text-slate-300">{done.message}</p>
           {done.delivery === "logged" && <p className="mt-2 text-[11px] text-amber-300" data-testid="forgot-password-fallback">Email delivery is not configured on this deployment — an administrator can hand you the link from the Users page.</p>}
@@ -67,7 +67,7 @@ export function ResetPassword() {
         <form onSubmit={submit} className="mt-5 space-y-3">
           <label className="block"><span className="label-mono mb-1 block">New password</span><input data-testid="reset-password-input" type="password" required minLength={8} value={pw} onChange={(e) => setPw(e.target.value)} className={inputCls} style={bd} /></label>
           <label className="block"><span className="label-mono mb-1 block">Confirm password</span><input data-testid="reset-password-confirm-input" type="password" required value={pw2} onChange={(e) => setPw2(e.target.value)} className={inputCls} style={bd} /></label>
-          {error && <p data-testid="reset-error" className="rounded px-3 py-2 text-xs" style={{ color: "#FF2A6D", background: "rgba(255,42,109,0.1)", border: "1px solid rgba(255,42,109,0.4)" }}>{error}</p>}
+          {error && <p data-testid="reset-error" className="rounded px-3 py-2 text-xs" style={{ color: "#ba1a1a", background: "rgba(186,26,26,0.1)", border: "1px solid rgba(186,26,26,0.4)" }}>{error}</p>}
           <button data-testid="reset-submit-button" disabled={busy} className="w-full rounded bg-cyan-400 px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-slate-950 hover:bg-cyan-300 disabled:opacity-50">{busy ? "Updating…" : "Set new password"}</button>
         </form>
       )}
